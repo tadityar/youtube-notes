@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Main</title>
+  <script src="client.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+</head>
+
+<body>
+
+<pre id="elm"></pre>
+
+<script>
+var flags = {}
+var app = Elm.Main.init({
+  node: document.getElementById('elm'),
+  flags: flags
+});
+</script>
+
+</body>
+</html>
