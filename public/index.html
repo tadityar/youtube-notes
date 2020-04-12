@@ -4,19 +4,68 @@
   <meta charset="UTF-8">
   <title>Main</title>
   <script src="client.js"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 </head>
 
 <body>
 
-<pre id="elm"></pre>
+<div class="container">
+  <div class="row">
+    <div class="col-sm-12">
+    <div id="player"></div>
+    </div>
+      </div>
 
+      <div class="row">
+    <div class="col-md-12">
+    <pre id="elm"></pre>
+  </div>
+  </div>
+</div>
 <script>
-var flags = {}
+// load YT iframe js
+var tag = document.createElement('script');
+
+tag.src = "https://www.youtube.com/iframe_api";
+var firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+var player;
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player('player', {
+    videoId: 'M7lc1UVf-VE',
+    events: {
+      'onReady': onPlayerReady,
+    }
+  });
+}
+
+// elm-stuff
+var flags = {
+  currentTime: 0
+}
 var app = Elm.Main.init({
   node: document.getElementById('elm'),
   flags: flags
 });
+app.ports.seekVideo.subscribe(function(timeStamp) {
+  player.seekTo(Number(timeStamp));
+});
+
+ready = false;
+function onPlayerReady(event) {
+  ready = true;
+  setInterval(getTimestamp, 1000, app, ready)
+}
+
+function getTimestamp(app, ready) {
+  if (ready) {
+    console.log({ currentTime: player.getCurrentTime()})
+      app.ports.getTimestamp.send(player.getCurrentTime())
+  }
+}
+
 </script>
 
 </body>
