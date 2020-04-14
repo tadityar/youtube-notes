@@ -56,7 +56,7 @@ app.ports.seekVideo.subscribe(function(timeStamp) {
 ready = false;
 function onPlayerReady(event) {
   ready = true;
-  setInterval(getTimestamp, 1000, app, ready)
+  setInterval(getTimestamp, 500, app, ready)
 }
 
 function getTimestamp(app, ready) {
