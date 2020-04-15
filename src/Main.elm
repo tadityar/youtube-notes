@@ -1,10 +1,11 @@
 port module Main exposing (main)
 
 import Browser
+import Browser.Navigation
 import Dict exposing (Dict)
-import Html exposing (Html, button, div, form, h1, input, label, small, text, textarea)
-import Html.Attributes exposing (class, disabled, readonly, step, type_, value)
-import Html.Events exposing (onClick, onInput)
+import Html exposing (Html, a, button, div, form, h1, input, label, small, text, textarea)
+import Html.Attributes exposing (checked, class, disabled, for, href, id, readonly, step, type_, value)
+import Html.Events exposing (onCheck, onClick, onInput, onSubmit)
 import Markdown.Parser
 import Markdown.Renderer
 import String exposing (fromInt)
@@ -13,11 +14,15 @@ import String exposing (fromInt)
 type alias Model =
     { currentTime : Float
     , notes : Dict Int String
+    , videoId : String
+    , title : String
+    , isDarkMode : Bool
     }
 
 
 type alias Flags =
     { currentTime : Float
+    , videoId : String
     }
 
 
@@ -29,6 +34,9 @@ type Msg
     | OnAddNote
     | OnNoteChanged Int String
     | OnNoteDelete Int
+    | OnToggleDarkMode
+    | OnVideoIdChange String
+    | OnChangeVideo String
 
 
 main =
@@ -39,6 +47,9 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { currentTime = flags.currentTime
       , notes = Dict.fromList []
+      , videoId = flags.videoId
+      , title = "youtube-notes"
+      , isDarkMode = False
       }
     , Cmd.none
     )
@@ -55,8 +66,9 @@ view model =
                 False
     in
     div []
-        [ noteDisplay model
-        , button [ class "btn btn-primary mt-1", onClick OnAddNote, disabled addNoteDisabled ] [ text "Add note" ]
+        [ button [ class "btn btn-primary mb-1", onClick OnAddNote, disabled addNoteDisabled ] [ text "Add note" ]
+        , div [ class "row" ]
+            [ div [ class "col-md-9" ] [ noteDisplay model ], div [ class "col-md-3" ] [ noteSettings model ] ]
         , noteForm model
         ]
 
@@ -101,17 +113,48 @@ update msg model =
             ( { model | notes = newNote }, Cmd.none )
 
         OnNoteDelete ts ->
-            -- let
-            --     newNotes =
-            --         Dict.remove ts model.notes
-            -- in
-            -- ( { model | notes = newNotes }, Cmd.none )
-            ( model, Cmd.none )
+            let
+                newNotes =
+                    Dict.remove ts model.notes
+            in
+            ( { model | notes = newNotes }, Cmd.none )
+
+        OnVideoIdChange s ->
+            ( { model | videoId = s }, Cmd.none )
+
+        OnChangeVideo videoId ->
+            ( model, Browser.Navigation.load ("/?videoId=" ++ model.videoId) )
+
+        OnToggleDarkMode ->
+            ( { model | isDarkMode = not model.isDarkMode }, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     getTimestamp ReceivedVideoTimestamp
+
+
+noteSettings : Model -> Html Msg
+noteSettings model =
+    div [ class "card" ]
+        [ div [ class "card-body" ]
+            [ form []
+                [ div [ class "form-group" ]
+                    [ label [] [ text "Video ID" ]
+                    , input [ class "form-control", value model.videoId, onInput OnVideoIdChange ] []
+                    ]
+                , button [ class "btn btn-danger", type_ "button", onClick (OnChangeVideo model.videoId) ] [ text "Change Video" ]
+                , div [ class "form-group" ]
+                    [ label [] [ text "Title" ]
+                    , input [ class "form-control", value model.title ] []
+                    ]
+                , div [ class "custom-control custom-switch" ]
+                    [ input [ type_ "checkbox", class "custom-control-input", id "dark-mode-switch", checked model.isDarkMode, onCheck (\_ -> OnToggleDarkMode) ] []
+                    , label [ class "custom-control-label", for "dark-mode-switch" ] [ text "Dark Mode" ]
+                    ]
+                ]
+            ]
+        ]
 
 
 noteForm : Model -> Html Msg
@@ -140,7 +183,7 @@ noteItemForm model currentNote =
                 [ label [] [ text "Note" ]
                 , textarea [ class "form-control", value (Tuple.second currentNote), onInput (\s -> OnNoteChanged ts s) ] []
                 ]
-            , button [ class "btn btn-outline-dark" ] [ text "Delete" ]
+            , button [ class "btn btn-outline-danger", onClick (OnNoteDelete ts), type_ "button" ] [ text "Delete" ]
             ]
         ]
 
@@ -180,14 +223,21 @@ noteDisplay model =
 
                 Err errors ->
                     div [ class "card-text" ] [ text errors ]
+
+        ( cardClass, btnClass ) =
+            if model.isDarkMode then
+                ( "card bg-dark text-light", "btn btn-outline-light" )
+
+            else
+                ( "card", "btn btn-outline-secondary" )
     in
-    div [ class "card" ]
+    div [ class cardClass ]
         [ div [ class "card-body" ]
             [ cardBody
             , div [ class "btn-group" ]
-                [ button [ class "btn btn-outline-secondary", onClick (OnPrevNote currentNote), disabled prevBtnDisabled ]
+                [ button [ class btnClass, onClick (OnPrevNote currentNote), disabled prevBtnDisabled ]
                     [ text "prev" ]
-                , button [ class "btn btn-outline-secondary", onClick (OnNextNote currentNote), disabled nextBtnDisabled ] [ text "next" ] -- TODO: Disable when there's no prev or next
+                , button [ class btnClass, onClick (OnNextNote currentNote), disabled nextBtnDisabled ] [ text "next" ] -- TODO: Disable when there's no prev or next
                 ]
             ]
         ]
