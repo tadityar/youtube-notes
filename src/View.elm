@@ -28,6 +28,7 @@ type alias Model =
 type alias Flags =
     { uuid : String
     , currentTime : Float
+    , isDarkMode : String
     }
 
 
@@ -59,7 +60,12 @@ init flags =
     ( { title = "View"
       , currentTime = flags.currentTime
       , notes = Dict.fromList []
-      , isDarkMode = True
+      , isDarkMode =
+            if flags.isDarkMode == "1" then
+                True
+
+            else
+                False
       }
     , getNote "http://localhost:8080/v1/graphql"
         { id =

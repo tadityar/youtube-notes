@@ -144,7 +144,7 @@ update msg model =
             , publishNote "http://localhost:8080/v1/graphql"
                 { input =
                     [ { id = GraphQL.Optional.Absent
-                      , is_dark_mode = GraphQL.Optional.Present False
+                      , is_dark_mode = GraphQL.Optional.Present model.isDarkMode
                       , notes = GraphQL.Optional.Present (Ext.Json.JsonB.JsonB model.notes)
                       , title = GraphQL.Optional.Present model.title
                       }
@@ -162,7 +162,15 @@ update msg model =
                         cmd =
                             case maybeCreatedNote of
                                 Just note ->
-                                    Browser.Navigation.load ("view.html?videoId=" ++ model.videoId ++ "&noteId=" ++ Ext.Json.UUID.string note.id)
+                                    let
+                                        darkStr =
+                                            if note.is_dark_mode then
+                                                "1"
+
+                                            else
+                                                "0"
+                                    in
+                                    Browser.Navigation.load ("view.html?videoId=" ++ model.videoId ++ "&noteId=" ++ Ext.Json.UUID.string note.id ++ "&isDark=" ++ darkStr ++ "&title=" ++ note.title)
 
                                 Nothing ->
                                     Cmd.none

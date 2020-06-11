@@ -8,12 +8,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 </head>
 
-<body class="bg-dark">
+<body id="body">
 
 <div class="container">
   <div class="row">
     <div class="col-sm-12">
-      <h1>youtube-notes</h1>
+      <h1 id="title">youtube-notes</h1>
     </div>
   </div>
   <div class="row">
@@ -25,7 +25,7 @@
     </div>
   </div>
   <div class="row">
-    <div class="col-md-12 text-center">
+    <div id="footer" class="col-md-12 text-center">
       <span>© 2020 by </span><a href="https://tadityar.me">tadityar</a><span> - </span><a href="https://github.com/tadityar/youtube-notes">source code</a>
     </div>
   </div>
@@ -55,6 +55,25 @@ if (urlParams.has('noteId')) {
   notesId = "";
 }
 
+var isDark;
+if (urlParams.has('isDark')) {
+  isDark = urlParams.get('isDark');
+} else {
+  isDark = "0";
+}
+
+if (isDark == "1") {
+  document.getElementById("body").classList.add("bg-dark");
+  document.getElementById("footer").classList.add("text-light");
+  document.getElementById("title").classList.add("text-light");
+}
+
+var title;
+if (urlParams.has('title')) {
+  title = urlParams.get('title');
+  document.getElementById("title").textContent = title
+}
+
 var player;
 function onYouTubeIframeAPIReady() {
   player = new YT.Player('player', {
@@ -69,6 +88,7 @@ function onYouTubeIframeAPIReady() {
 var flags = {
   uuid: notesId,
   currentTime: 0,
+  isDarkMode: isDark,
 }
 var app = Elm.View.init({
   node: document.getElementById('elm'),
