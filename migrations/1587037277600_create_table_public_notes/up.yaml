@@ -1,0 +1,16 @@
+- args:
+    cascade: false
+    read_only: false
+    sql: CREATE EXTENSION IF NOT EXISTS pgcrypto;
+  type: run_sql
+- args:
+    cascade: false
+    read_only: false
+    sql: CREATE TABLE "public"."notes"("id" uuid NOT NULL DEFAULT gen_random_uuid(),
+      "title" text NOT NULL, "notes" jsonb NOT NULL, "is_dark_mode" boolean NOT NULL
+      DEFAULT FALSE, PRIMARY KEY ("id") , UNIQUE ("id"));
+  type: run_sql
+- args:
+    name: notes
+    schema: public
+  type: add_existing_table_or_view

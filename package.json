@@ -1,0 +1,28 @@
+{
+  "name": "youtube-notes",
+  "version": "1.0.0",
+  "description": "run with",
+  "main": "index.js",
+  "dependencies": {
+    "elm-live": "^4.0.2",
+    "glob": "^7.1.6",
+    "graphql-to-elm": "^1.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^5.2.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tadityar/youtube-notes.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tadityar/youtube-notes/issues"
+  },
+  "homepage": "https://github.com/tadityar/youtube-notes#readme"
+}

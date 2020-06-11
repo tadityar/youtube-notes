@@ -1,0 +1,10 @@
+mutation($input: [notes_insert_input!]!){
+  insert_notes(objects: $input){
+    returning {
+      id
+      is_dark_mode
+      notes
+      title
+    }
+  }
+}

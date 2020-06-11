@@ -1,0 +1,406 @@
+schema {
+  query: query_root
+  mutation: mutation_root
+  subscription: subscription_root
+}
+
+# expression to compare columns of type Boolean. All fields are combined with logical 'AND'.
+input Boolean_comparison_exp {
+  _eq: Boolean
+  _gt: Boolean
+  _gte: Boolean
+  _in: [Boolean!]
+  _is_null: Boolean
+  _lt: Boolean
+  _lte: Boolean
+  _neq: Boolean
+  _nin: [Boolean!]
+}
+
+scalar jsonb
+
+# expression to compare columns of type jsonb. All fields are combined with logical 'AND'.
+input jsonb_comparison_exp {
+  # is the column contained in the given json value
+  _contained_in: jsonb
+
+  # does the column contain the given json value at the top level
+  _contains: jsonb
+  _eq: jsonb
+  _gt: jsonb
+  _gte: jsonb
+
+  # does the string exist as a top-level key in the column
+  _has_key: String
+
+  # do all of these strings exist as top-level keys in the column
+  _has_keys_all: [String!]
+
+  # do any of these strings exist as top-level keys in the column
+  _has_keys_any: [String!]
+  _in: [jsonb!]
+  _is_null: Boolean
+  _lt: jsonb
+  _lte: jsonb
+  _neq: jsonb
+  _nin: [jsonb!]
+}
+
+# mutation root
+type mutation_root {
+  # delete data from the table: "notes"
+  delete_notes(
+    # filter the rows which have to be deleted
+    where: notes_bool_exp!
+  ): notes_mutation_response
+
+  # insert data into the table: "notes"
+  insert_notes(
+    # the rows to be inserted
+    objects: [notes_insert_input!]!
+
+    # on conflict condition
+    on_conflict: notes_on_conflict
+  ): notes_mutation_response
+
+  # update data of the table: "notes"
+  update_notes(
+    # append existing jsonb value of filtered columns with new jsonb value
+    _append: notes_append_input
+
+    # delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+    _delete_at_path: notes_delete_at_path_input
+
+    # delete the array element with specified index (negative integers count from
+    # the end). throws an error if top level container is not an array
+    _delete_elem: notes_delete_elem_input
+
+    # delete key/value pair or string element. key/value pairs are matched based on their key value
+    _delete_key: notes_delete_key_input
+
+    # prepend existing jsonb value of filtered columns with new jsonb value
+    _prepend: notes_prepend_input
+
+    # sets the columns of the filtered rows to the given values
+    _set: notes_set_input
+
+    # filter the rows which have to be updated
+    where: notes_bool_exp!
+  ): notes_mutation_response
+}
+
+# columns and relationships of "notes"
+type notes {
+  id: uuid!
+  is_dark_mode: Boolean!
+  notes(
+    # JSON select path
+    path: String
+  ): jsonb!
+  title: String!
+}
+
+# aggregated selection of "notes"
+type notes_aggregate {
+  aggregate: notes_aggregate_fields
+  nodes: [notes!]!
+}
+
+# aggregate fields of "notes"
+type notes_aggregate_fields {
+  count(columns: [notes_select_column!], distinct: Boolean): Int
+  max: notes_max_fields
+  min: notes_min_fields
+}
+
+# order by aggregate values of table "notes"
+input notes_aggregate_order_by {
+  count: order_by
+  max: notes_max_order_by
+  min: notes_min_order_by
+}
+
+# append existing jsonb value of filtered columns with new jsonb value
+input notes_append_input {
+  notes: jsonb
+}
+
+# input type for inserting array relation for remote table "notes"
+input notes_arr_rel_insert_input {
+  data: [notes_insert_input!]!
+  on_conflict: notes_on_conflict
+}
+
+# Boolean expression to filter rows from the table "notes". All fields are combined with a logical 'AND'.
+input notes_bool_exp {
+  _and: [notes_bool_exp]
+  _not: notes_bool_exp
+  _or: [notes_bool_exp]
+  id: uuid_comparison_exp
+  is_dark_mode: Boolean_comparison_exp
+  notes: jsonb_comparison_exp
+  title: String_comparison_exp
+}
+
+# unique or primary key constraints on table "notes"
+enum notes_constraint {
+  # unique or primary key constraint
+  notes_pkey
+}
+
+# delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+input notes_delete_at_path_input {
+  notes: [String]
+}
+
+# delete the array element with specified index (negative integers count from the
+# end). throws an error if top level container is not an array
+input notes_delete_elem_input {
+  notes: Int
+}
+
+# delete key/value pair or string element. key/value pairs are matched based on their key value
+input notes_delete_key_input {
+  notes: String
+}
+
+# input type for inserting data into table "notes"
+input notes_insert_input {
+  id: uuid
+  is_dark_mode: Boolean
+  notes: jsonb
+  title: String
+}
+
+# aggregate max on columns
+type notes_max_fields {
+  title: String
+}
+
+# order by max() on columns of table "notes"
+input notes_max_order_by {
+  title: order_by
+}
+
+# aggregate min on columns
+type notes_min_fields {
+  title: String
+}
+
+# order by min() on columns of table "notes"
+input notes_min_order_by {
+  title: order_by
+}
+
+# response of any mutation on the table "notes"
+type notes_mutation_response {
+  # number of affected rows by the mutation
+  affected_rows: Int!
+
+  # data of the affected rows by the mutation
+  returning: [notes!]!
+}
+
+# input type for inserting object relation for remote table "notes"
+input notes_obj_rel_insert_input {
+  data: notes_insert_input!
+  on_conflict: notes_on_conflict
+}
+
+# on conflict condition type for table "notes"
+input notes_on_conflict {
+  constraint: notes_constraint!
+  update_columns: [notes_update_column!]!
+  where: notes_bool_exp
+}
+
+# ordering options when selecting data from "notes"
+input notes_order_by {
+  id: order_by
+  is_dark_mode: order_by
+  notes: order_by
+  title: order_by
+}
+
+# prepend existing jsonb value of filtered columns with new jsonb value
+input notes_prepend_input {
+  notes: jsonb
+}
+
+# select columns of table "notes"
+enum notes_select_column {
+  # column name
+  id
+
+  # column name
+  is_dark_mode
+
+  # column name
+  notes
+
+  # column name
+  title
+}
+
+# input type for updating data in table "notes"
+input notes_set_input {
+  id: uuid
+  is_dark_mode: Boolean
+  notes: jsonb
+  title: String
+}
+
+# update columns of table "notes"
+enum notes_update_column {
+  # column name
+  id
+
+  # column name
+  is_dark_mode
+
+  # column name
+  notes
+
+  # column name
+  title
+}
+
+# column ordering options
+enum order_by {
+  # in the ascending order, nulls last
+  asc
+
+  # in the ascending order, nulls first
+  asc_nulls_first
+
+  # in the ascending order, nulls last
+  asc_nulls_last
+
+  # in the descending order, nulls first
+  desc
+
+  # in the descending order, nulls first
+  desc_nulls_first
+
+  # in the descending order, nulls last
+  desc_nulls_last
+}
+
+# query root
+type query_root {
+  # fetch data from the table: "notes"
+  notes(
+    # distinct select on columns
+    distinct_on: [notes_select_column!]
+
+    # limit the number of rows returned
+    limit: Int
+
+    # skip the first n rows. Use only with order_by
+    offset: Int
+
+    # sort the rows by one or more columns
+    order_by: [notes_order_by!]
+
+    # filter the rows returned
+    where: notes_bool_exp
+  ): [notes!]!
+
+  # fetch aggregated fields from the table: "notes"
+  notes_aggregate(
+    # distinct select on columns
+    distinct_on: [notes_select_column!]
+
+    # limit the number of rows returned
+    limit: Int
+
+    # skip the first n rows. Use only with order_by
+    offset: Int
+
+    # sort the rows by one or more columns
+    order_by: [notes_order_by!]
+
+    # filter the rows returned
+    where: notes_bool_exp
+  ): notes_aggregate!
+
+  # fetch data from the table: "notes" using primary key columns
+  notes_by_pk(id: uuid!): notes
+}
+
+# expression to compare columns of type String. All fields are combined with logical 'AND'.
+input String_comparison_exp {
+  _eq: String
+  _gt: String
+  _gte: String
+  _ilike: String
+  _in: [String!]
+  _is_null: Boolean
+  _like: String
+  _lt: String
+  _lte: String
+  _neq: String
+  _nilike: String
+  _nin: [String!]
+  _nlike: String
+  _nsimilar: String
+  _similar: String
+}
+
+# subscription root
+type subscription_root {
+  # fetch data from the table: "notes"
+  notes(
+    # distinct select on columns
+    distinct_on: [notes_select_column!]
+
+    # limit the number of rows returned
+    limit: Int
+
+    # skip the first n rows. Use only with order_by
+    offset: Int
+
+    # sort the rows by one or more columns
+    order_by: [notes_order_by!]
+
+    # filter the rows returned
+    where: notes_bool_exp
+  ): [notes!]!
+
+  # fetch aggregated fields from the table: "notes"
+  notes_aggregate(
+    # distinct select on columns
+    distinct_on: [notes_select_column!]
+
+    # limit the number of rows returned
+    limit: Int
+
+    # skip the first n rows. Use only with order_by
+    offset: Int
+
+    # sort the rows by one or more columns
+    order_by: [notes_order_by!]
+
+    # filter the rows returned
+    where: notes_bool_exp
+  ): notes_aggregate!
+
+  # fetch data from the table: "notes" using primary key columns
+  notes_by_pk(id: uuid!): notes
+}
+
+scalar uuid
+
+# expression to compare columns of type uuid. All fields are combined with logical 'AND'.
+input uuid_comparison_exp {
+  _eq: uuid
+  _gt: uuid
+  _gte: uuid
+  _in: [uuid!]
+  _is_null: Boolean
+  _lt: uuid
+  _lte: uuid
+  _neq: uuid
+  _nin: [uuid!]
+}
+

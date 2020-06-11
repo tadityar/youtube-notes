@@ -1,0 +1,8 @@
+query($id: uuid!) {
+  notes_by_pk(id: $id){
+    id
+    is_dark_mode
+    notes
+    title
+  }
+}

@@ -1,14 +1,22 @@
-port module Main exposing (main)
+port module Create exposing (deadEndsToString, isAfter, isBefore, isOnOrBefore, main)
 
 import Browser
 import Browser.Navigation
+import Db.InsertNotes
 import Dict exposing (Dict)
+import Ext.GraphQL.Http
+import Ext.Json.JsonB exposing (JsonB)
+import Ext.Json.UUID
+import GraphQL.Optional
+import GraphQL.Response
 import Html exposing (Html, a, button, div, form, h1, input, label, small, text, textarea)
 import Html.Attributes exposing (checked, class, disabled, for, href, id, readonly, step, type_, value)
 import Html.Events exposing (onCheck, onClick, onInput, onSubmit)
+import Http
 import Markdown.Parser
 import Markdown.Renderer
 import String exposing (fromInt)
+import Task
 
 
 type alias Model =
@@ -37,6 +45,8 @@ type Msg
     | OnToggleDarkMode
     | OnVideoIdChange String
     | OnChangeVideo String
+    | OnPublishNote
+    | OnInsertNote (Result Http.Error Db.InsertNotes.Response)
 
 
 main =
@@ -59,14 +69,15 @@ view : Model -> Html Msg
 view model =
     let
         addNoteDisabled =
-            if Dict.member (Basics.round model.currentTime) model.notes then
+            if Dict.member (Basics.floor model.currentTime) model.notes then
                 True
 
             else
                 False
     in
     div []
-        [ button [ class "btn btn-primary mb-1", onClick OnAddNote, disabled addNoteDisabled ] [ text "Add note" ]
+        [ button [ class "btn btn-primary mb-1 mr-1", onClick OnAddNote, disabled addNoteDisabled ] [ text "Add note" ]
+        , button [ class "btn btn-outline-primary mb-1", onClick OnPublishNote ] [ text "Publish note" ]
         , div [ class "row" ]
             [ div [ class "col-md-9" ] [ noteDisplay model ], div [ class "col-md-3" ] [ noteSettings model ] ]
         , noteForm model
@@ -103,7 +114,7 @@ update msg model =
             ( { model | currentTime = toFloat (Tuple.first prevNote) }, seekVideo (Tuple.first prevNote) )
 
         OnAddNote ->
-            ( { model | notes = Dict.insert (Basics.round model.currentTime) "" model.notes }, Cmd.none )
+            ( { model | notes = Dict.insert (Basics.floor model.currentTime) "" model.notes }, Cmd.none )
 
         OnNoteChanged ts s ->
             let
@@ -127,6 +138,45 @@ update msg model =
 
         OnToggleDarkMode ->
             ( { model | isDarkMode = not model.isDarkMode }, Cmd.none )
+
+        OnPublishNote ->
+            ( model
+            , publishNote "http://localhost:8080/v1/graphql"
+                { input =
+                    [ { id = GraphQL.Optional.Absent
+                      , is_dark_mode = GraphQL.Optional.Present False
+                      , notes = GraphQL.Optional.Present (Ext.Json.JsonB.JsonB model.notes)
+                      , title = GraphQL.Optional.Present model.title
+                      }
+                    ]
+                }
+            )
+
+        OnInsertNote result ->
+            case result of
+                Ok (GraphQL.Response.Data query) ->
+                    let
+                        maybeCreatedNote =
+                            Maybe.andThen (\n -> List.head n.returning) query.insert_notes
+
+                        cmd =
+                            case maybeCreatedNote of
+                                Just note ->
+                                    Browser.Navigation.load ("view.html?videoId=" ++ model.videoId ++ "&noteId=" ++ Ext.Json.UUID.string note.id)
+
+                                Nothing ->
+                                    Cmd.none
+
+                        lala =
+                            Debug.log "LALALALAL" maybeCreatedNote
+                    in
+                    ( model, cmd )
+
+                Ok (GraphQL.Response.Errors errors _) ->
+                    ( model, Cmd.none )
+
+                Err error ->
+                    ( model, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
@@ -281,6 +331,13 @@ isAfter currentTime ( time, _ ) =
 
     else
         False
+
+
+publishNote : String -> Db.InsertNotes.Variables -> Cmd Msg
+publishNote apiUrl variables =
+    Db.InsertNotes.mutation variables
+        |> Ext.GraphQL.Http.post { headers = [], url = apiUrl, timeout = Just 60000.0 }
+        |> Task.attempt OnInsertNote
 
 
 port getTimestamp : (Float -> msg) -> Sub msg
