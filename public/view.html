@@ -41,6 +41,7 @@ firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
 
+// there should be nicer ways of doing this, but this will do for now
 var videoId;
 if (urlParams.has('videoId')) {
   videoId = urlParams.get('videoId');

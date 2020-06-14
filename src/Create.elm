@@ -344,7 +344,7 @@ isAfter currentTime ( time, _ ) =
 publishNote : String -> Db.InsertNotes.Variables -> Cmd Msg
 publishNote apiUrl variables =
     Db.InsertNotes.mutation variables
-        |> Ext.GraphQL.Http.post { headers = [], url = apiUrl, timeout = Just 60000.0 }
+        |> Ext.GraphQL.Http.post { headers = [ Http.header "X-Hasura-Role" "public" ], url = apiUrl, timeout = Just 60000.0 }
         |> Task.attempt OnInsertNote
 
 
