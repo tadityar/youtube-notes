@@ -134,7 +134,7 @@ update msg model =
             ( { model | videoId = s }, Cmd.none )
 
         OnChangeVideo videoId ->
-            ( model, Browser.Navigation.load ("/?videoId=" ++ model.videoId) )
+            ( model, Browser.Navigation.load ("/create.html?videoId=" ++ model.videoId) )
 
         OnToggleDarkMode ->
             ( { model | isDarkMode = not model.isDarkMode }, Cmd.none )
@@ -154,10 +154,10 @@ update msg model =
 
         OnInsertNote result ->
             case result of
-                Ok (GraphQL.Response.Data query) ->
+                Ok (GraphQL.Response.Data mutation) ->
                     let
                         maybeCreatedNote =
-                            Maybe.andThen (\n -> List.head n.returning) query.insert_notes
+                            Maybe.andThen (\n -> List.head n.returning) mutation.insert_notes
 
                         cmd =
                             case maybeCreatedNote of
@@ -174,16 +174,15 @@ update msg model =
 
                                 Nothing ->
                                     Cmd.none
-
-                        lala =
-                            Debug.log "LALALALAL" maybeCreatedNote
                     in
                     ( model, cmd )
 
                 Ok (GraphQL.Response.Errors errors _) ->
+                    -- TODO: alert that there was an error
                     ( model, Cmd.none )
 
                 Err error ->
+                    -- TODO: alert that there was an error
                     ( model, Cmd.none )
 
 
