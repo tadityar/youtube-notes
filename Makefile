@@ -18,6 +18,9 @@ elm-live-view:
 	-- --output public/view.js
 .PHONY: elm-live-view
 
+infra-dependencies:
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up graphql-engine
+
 runtime-dependencies: node_modules build-graphql
 .PHONY: runtime-dependencies
 
