@@ -1,7 +1,11 @@
+run-dev:
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up elm
+.PHONY: run-dev
+
 elm: runtime-dependencies
 	which elm-live || npm install -g elm-live@^3.4.1
 	which concurrently || npm install -g concurrently
-	concurrently "make elm-live-create" "make elm-live-view"
+	make elm-live-create
 .PHONY: elm
 
 elm-live-create:
