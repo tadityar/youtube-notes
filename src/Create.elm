@@ -13,6 +13,8 @@ import Html exposing (Html, a, button, div, form, h1, input, label, small, text,
 import Html.Attributes exposing (checked, class, disabled, for, href, id, readonly, step, type_, value)
 import Html.Events exposing (onCheck, onClick, onInput, onSubmit)
 import Http
+import Markdown.Block as Block exposing (Block, Inline, ListItem(..), Task(..))
+import Markdown.Html
 import Markdown.Parser
 import Markdown.Renderer
 import String exposing (fromInt)
@@ -47,6 +49,7 @@ type Msg
     | OnChangeVideo String
     | OnPublishNote
     | OnInsertNote (Result Http.Error Db.InsertNotes.Response)
+    | OnTitleChange String
 
 
 main =
@@ -185,6 +188,9 @@ update msg model =
                     -- TODO: alert that there was an error
                     ( model, Cmd.none )
 
+        OnTitleChange s ->
+            ( { model | title = s }, Cmd.none )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -203,7 +209,7 @@ noteSettings model =
                 , button [ class "btn btn-danger", type_ "button", onClick (OnChangeVideo model.videoId) ] [ text "Change Video" ]
                 , div [ class "form-group" ]
                     [ label [] [ text "Title" ]
-                    , input [ class "form-control", value model.title ] []
+                    , input [ class "form-control", value model.title, onInput OnTitleChange ] []
                     ]
                 , div [ class "custom-control custom-switch" ]
                     [ input [ type_ "checkbox", class "custom-control-input", id "dark-mode-switch", checked model.isDarkMode, onCheck (\_ -> OnToggleDarkMode) ] []
