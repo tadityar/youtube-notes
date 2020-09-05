@@ -61,7 +61,7 @@ init flags =
     ( { currentTime = flags.currentTime
       , notes = Dict.fromList []
       , videoId = flags.videoId
-      , title = "youtube-notes"
+      , title = "Note Title"
       , isDarkMode = False
       }
     , Cmd.none
@@ -81,6 +81,7 @@ view model =
     div []
         [ button [ class "btn btn-primary mb-1 mr-1", onClick OnAddNote, disabled addNoteDisabled ] [ text "Add note" ]
         , button [ class "btn btn-outline-primary mb-1", onClick OnPublishNote ] [ text "Publish note" ]
+        , h1 [] [ text model.title ]
         , div [ class "row" ]
             [ div [ class "col-md-9" ] [ noteDisplay model ], div [ class "col-md-3" ] [ noteSettings model ] ]
         , noteForm model
