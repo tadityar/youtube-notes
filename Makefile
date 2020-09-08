@@ -4,8 +4,7 @@ run-dev:
 
 elm: runtime-dependencies
 	which elm-live || npm install -g elm-live@^3.4.1
-	which concurrently || npm install -g concurrently
-	make elm-live-create
+	make elm-live-view
 .PHONY: elm
 
 elm-live-create:
@@ -34,6 +33,8 @@ node_modules: package.json
 
 build-graphql:
 	rm -f src/db/*.elm
+	which gq || npm install -g graphqurl
+	gq http://graphql-engine:8080/v1/graphql -H "X-Hasura-Admin-Secret: adminsecret" --introspect > schema.graphql
 	node scripts/run-graphql-to-elm.js
 .PHONY: build-graphql
 

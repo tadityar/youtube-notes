@@ -223,11 +223,12 @@ getNote apiUrl variables =
 
 notesDecoder : Json.Decode.Decoder Db.NotesByPK.Notes
 notesDecoder =
-    Json.Decode.map4 Db.NotesByPK.Notes
+    Json.Decode.map5 Db.NotesByPK.Notes
         (Json.Decode.field "id" Ext.Json.Decoder.decodeUUID)
         (Json.Decode.field "is_dark_mode" Json.Decode.bool)
         (Json.Decode.field "notes" Ext.Json.Decoder.decodeJsonB)
         (Json.Decode.field "title" Json.Decode.string)
+        (Json.Decode.field "videoId" Json.Decode.string)
 
 
 port getTimestamp : (Float -> msg) -> Sub msg

@@ -5,6 +5,7 @@ mutation($input: [notes_insert_input!]!){
       is_dark_mode
       notes
       title
+      videoId
     }
   }
 }

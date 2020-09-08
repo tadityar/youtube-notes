@@ -151,6 +151,7 @@ update msg model =
                       , is_dark_mode = GraphQL.Optional.Present model.isDarkMode
                       , notes = GraphQL.Optional.Present (Ext.Json.JsonB.JsonB model.notes)
                       , title = GraphQL.Optional.Present model.title
+                      , videoId = GraphQL.Optional.Present model.videoId
                       }
                     ]
                 }

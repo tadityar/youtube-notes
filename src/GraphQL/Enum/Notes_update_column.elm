@@ -15,6 +15,7 @@ type Notes_update_column
     | Is_dark_mode
     | Notes
     | Title
+    | VideoId
 
 
 encode : Notes_update_column -> Json.Encode.Value
@@ -50,6 +51,9 @@ toString value =
         Title ->
             "title"
 
+        VideoId ->
+            "videoId"
+
 
 fromString : String -> Maybe Notes_update_column
 fromString value =
@@ -65,6 +69,9 @@ fromString value =
 
         "title" ->
             Just Title
+
+        "videoId" ->
+            Just VideoId
 
         _ ->
             Nothing

@@ -54,6 +54,9 @@ type mutation_root {
     where: notes_bool_exp!
   ): notes_mutation_response
 
+  # delete single row from the table: "notes"
+  delete_notes_by_pk(id: uuid!): notes
+
   # insert data into the table: "notes"
   insert_notes(
     # the rows to be inserted
@@ -62,6 +65,15 @@ type mutation_root {
     # on conflict condition
     on_conflict: notes_on_conflict
   ): notes_mutation_response
+
+  # insert a single row into the table: "notes"
+  insert_notes_one(
+    # the row to be inserted
+    object: notes_insert_input!
+
+    # on conflict condition
+    on_conflict: notes_on_conflict
+  ): notes
 
   # update data of the table: "notes"
   update_notes(
@@ -87,6 +99,29 @@ type mutation_root {
     # filter the rows which have to be updated
     where: notes_bool_exp!
   ): notes_mutation_response
+
+  # update single row of the table: "notes"
+  update_notes_by_pk(
+    # append existing jsonb value of filtered columns with new jsonb value
+    _append: notes_append_input
+
+    # delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+    _delete_at_path: notes_delete_at_path_input
+
+    # delete the array element with specified index (negative integers count from
+    # the end). throws an error if top level container is not an array
+    _delete_elem: notes_delete_elem_input
+
+    # delete key/value pair or string element. key/value pairs are matched based on their key value
+    _delete_key: notes_delete_key_input
+
+    # prepend existing jsonb value of filtered columns with new jsonb value
+    _prepend: notes_prepend_input
+
+    # sets the columns of the filtered rows to the given values
+    _set: notes_set_input
+    pk_columns: notes_pk_columns_input!
+  ): notes
 }
 
 # columns and relationships of "notes"
@@ -98,6 +133,7 @@ type notes {
     path: String
   ): jsonb!
   title: String!
+  videoId: String!
 }
 
 # aggregated selection of "notes"
@@ -140,6 +176,7 @@ input notes_bool_exp {
   is_dark_mode: Boolean_comparison_exp
   notes: jsonb_comparison_exp
   title: String_comparison_exp
+  videoId: String_comparison_exp
 }
 
 # unique or primary key constraints on table "notes"
@@ -170,26 +207,35 @@ input notes_insert_input {
   is_dark_mode: Boolean
   notes: jsonb
   title: String
+  videoId: String
 }
 
 # aggregate max on columns
 type notes_max_fields {
+  id: uuid
   title: String
+  videoId: String
 }
 
 # order by max() on columns of table "notes"
 input notes_max_order_by {
+  id: order_by
   title: order_by
+  videoId: order_by
 }
 
 # aggregate min on columns
 type notes_min_fields {
+  id: uuid
   title: String
+  videoId: String
 }
 
 # order by min() on columns of table "notes"
 input notes_min_order_by {
+  id: order_by
   title: order_by
+  videoId: order_by
 }
 
 # response of any mutation on the table "notes"
@@ -220,6 +266,12 @@ input notes_order_by {
   is_dark_mode: order_by
   notes: order_by
   title: order_by
+  videoId: order_by
+}
+
+# primary key columns input for table: "notes"
+input notes_pk_columns_input {
+  id: uuid!
 }
 
 # prepend existing jsonb value of filtered columns with new jsonb value
@@ -240,6 +292,9 @@ enum notes_select_column {
 
   # column name
   title
+
+  # column name
+  videoId
 }
 
 # input type for updating data in table "notes"
@@ -248,6 +303,7 @@ input notes_set_input {
   is_dark_mode: Boolean
   notes: jsonb
   title: String
+  videoId: String
 }
 
 # update columns of table "notes"
@@ -263,6 +319,9 @@ enum notes_update_column {
 
   # column name
   title
+
+  # column name
+  videoId
 }
 
 # column ordering options

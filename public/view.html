@@ -49,14 +49,6 @@ if (urlParams.has('noteId')) {
   id = "";
 }
 
-// there should be nicer ways of doing this, but this will do for now
-var videoId;
-if (urlParams.has('videoId')) {
-  videoId = urlParams.get('videoId');
-} else {
-  videoId = "";
-}
-
 const query = `
 query notes_by_pk($id: uuid!) {
   notes_by_pk(id: $id) {
@@ -64,6 +56,7 @@ query notes_by_pk($id: uuid!) {
     notes
     title
     id
+    videoId
   }
 }
 `
@@ -86,8 +79,9 @@ xhr.send(JSON.stringify({
 if (xhr.status === 200) {
   var jsonResponse = JSON.parse(xhr.response);
   hasuraResponse = jsonResponse.data.notes_by_pk;
-  document.getElementById("title").textContent = hasuraResponse.title
-  isDark = hasuraResponse.is_dark_mode
+  document.getElementById("title").textContent = hasuraResponse.title;
+  isDark = hasuraResponse.is_dark_mode;
+  videoId = hasuraResponse.videoId;
 }
 
 if (isDark) {

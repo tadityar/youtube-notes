@@ -4,5 +4,6 @@ query($id: uuid!) {
     is_dark_mode
     notes
     title
+    videoId
   }
 }
