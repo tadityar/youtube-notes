@@ -1,0 +1,12 @@
+FROM frolvlad/alpine-glibc:alpine-3.12_glibc-2.31
+
+ENV HASURA_VERSION v1.3.0
+
+RUN apk add curl libstdc++
+RUN curl -L -f -o "/usr/local/bin/hasura" "https://github.com/hasura/graphql-engine/releases/download/${HASURA_VERSION}/cli-hasura-linux-amd64"
+RUN chmod +x "/usr/local/bin/hasura"
+RUN /usr/local/bin/hasura plugins install cli-ext
+
+RUN mkdir -p /hasura/metadata
+COPY hasura/config.yaml /hasura/
+COPY hasura/metadata/* /hasura/metadata/

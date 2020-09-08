@@ -1,0 +1,23 @@
+- table:
+    schema: public
+    name: notes
+  insert_permissions:
+  - role: public
+    permission:
+      check: {}
+      columns:
+      - id
+      - is_dark_mode
+      - notes
+      - title
+      - videoId
+  select_permissions:
+  - role: public
+    permission:
+      columns:
+      - id
+      - is_dark_mode
+      - notes
+      - title
+      - videoId
+      filter: {}
