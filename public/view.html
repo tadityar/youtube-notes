@@ -42,6 +42,13 @@ firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
 
+var id;
+if (urlParams.has('noteId')) {
+  id = urlParams.get('noteId');
+} else {
+  id = "";
+}
+
 // there should be nicer ways of doing this, but this will do for now
 var videoId;
 if (urlParams.has('videoId')) {
@@ -50,30 +57,43 @@ if (urlParams.has('videoId')) {
   videoId = "";
 }
 
-var notesId;
-if (urlParams.has('noteId')) {
-  notesId = urlParams.get('noteId');
-} else {
-  notesId = "";
+const query = `
+query notes_by_pk($id: uuid!) {
+  notes_by_pk(id: $id) {
+    is_dark_mode
+    notes
+    title
+    id
+  }
 }
+`
 
+var hasuraResponse;
+var title;
 var isDark;
-if (urlParams.has('isDark')) {
-  isDark = urlParams.get('isDark');
-} else {
-  isDark = "0";
+var videoId;
+var xhr = new XMLHttpRequest();
+xhr.open("POST", 'http://localhost:8080/v1/graphql', false);
+
+//Send the proper header information along with the request
+xhr.setRequestHeader("Content-Type", "application/json");
+xhr.setRequestHeader("Accept", "application/json");
+xhr.send(JSON.stringify({
+  query,
+  variables: { id }
+}));
+
+if (xhr.status === 200) {
+  var jsonResponse = JSON.parse(xhr.response);
+  hasuraResponse = jsonResponse.data.notes_by_pk;
+  document.getElementById("title").textContent = hasuraResponse.title
+  isDark = hasuraResponse.is_dark_mode
 }
 
-if (isDark == "1") {
+if (isDark) {
   document.getElementById("body").classList.add("bg-dark");
   document.getElementById("footer").classList.add("text-light");
   document.getElementById("title").classList.add("text-light");
-}
-
-var title;
-if (urlParams.has('title')) {
-  title = urlParams.get('title');
-  document.getElementById("title").textContent = title
 }
 
 var player;
@@ -88,9 +108,8 @@ function onYouTubeIframeAPIReady() {
 
 // elm-stuff
 var flags = {
-  uuid: notesId,
   currentTime: 0,
-  isDarkMode: isDark,
+  fetchedNote: hasuraResponse,
 }
 var app = Elm.View.init({
   node: document.getElementById('elm'),

@@ -5,6 +5,7 @@ import Create exposing (deadEndsToString, isAfter, isBefore, isOnOrBefore)
 import Db.NotesByPK
 import Dict exposing (Dict)
 import Ext.GraphQL.Http
+import Ext.Json.Decoder
 import Ext.Json.JsonB
 import Ext.Json.UUID exposing (UUID)
 import GraphQL.Response
@@ -12,6 +13,7 @@ import Html exposing (Html, button, div, text)
 import Html.Attributes exposing (class, disabled)
 import Html.Events exposing (onClick)
 import Http
+import Json.Decode
 import Markdown.Parser
 import Markdown.Renderer
 import Task
@@ -26,9 +28,11 @@ type alias Model =
 
 
 type alias Flags =
-    { uuid : String
-    , currentTime : Float
-    , isDarkMode : String
+    -- { uuid : String
+    { currentTime : Float
+
+    -- , isDarkMode : String
+    , fetchedNote : Json.Decode.Value
     }
 
 
@@ -57,20 +61,32 @@ subscriptions model =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
+    let
+        decodedNote =
+            case Json.Decode.decodeValue notesDecoder flags.fetchedNote of
+                Ok value ->
+                    Just value
+
+                Err error ->
+                    Nothing
+
+        darkMode =
+            Maybe.map .is_dark_mode decodedNote
+
+        notes =
+            case Maybe.map .notes decodedNote of
+                Just note ->
+                    note
+
+                Nothing ->
+                    Ext.Json.JsonB.JsonB (Dict.fromList [])
+    in
     ( { title = "View"
       , currentTime = flags.currentTime
-      , notes = Dict.fromList []
-      , isDarkMode =
-            if flags.isDarkMode == "1" then
-                True
-
-            else
-                False
+      , notes = Ext.Json.JsonB.dict notes
+      , isDarkMode = Maybe.withDefault True darkMode
       }
-    , getNote "http://localhost:8080/v1/graphql"
-        { id =
-            Ext.Json.UUID.UUID flags.uuid
-        }
+    , Cmd.none
     )
 
 
@@ -203,6 +219,15 @@ getNote apiUrl variables =
     Db.NotesByPK.query variables
         |> Ext.GraphQL.Http.post { headers = [], url = apiUrl, timeout = Just 60000.0 }
         |> Task.attempt OnGetNote
+
+
+notesDecoder : Json.Decode.Decoder Db.NotesByPK.Notes
+notesDecoder =
+    Json.Decode.map4 Db.NotesByPK.Notes
+        (Json.Decode.field "id" Ext.Json.Decoder.decodeUUID)
+        (Json.Decode.field "is_dark_mode" Json.Decode.bool)
+        (Json.Decode.field "notes" Ext.Json.Decoder.decodeJsonB)
+        (Json.Decode.field "title" Json.Decode.string)
 
 
 port getTimestamp : (Float -> msg) -> Sub msg

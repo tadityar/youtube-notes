@@ -8,12 +8,50 @@ services:
     networks:
       - youtube-notes
   graphql-engine:
-    image: hasura/graphql-engine:v1.1.1
+    image: hasura/graphql-engine:v1.3.0
     depends_on:
     - "postgres"
     restart: always
     networks:
       - youtube-notes
+    environment:
+      HASURA_GRAPHQL_DEV_MODE: "true"
+      HASURA_GRAPHQL_ADMIN_SECRET: "adminsecret"
+      HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: public
+  # This is basically the same as hasura but it auto saves the metadata on every change
+  graphql-console:
+    depends_on:
+      - "graphql-engine"
+    restart: unless-stopped # likely need restart for graphql-engine to be ready
+    build: ./hasura
+    command:
+      - ./docker-compose-up.sh
+    networks:
+      - youtube-notes
+    ports:
+      # NOTE
+      # interact with hasura only through this port, i.e. http://localhost:9695/
+      - "9695:9695"
+      - "9693:9693"
+    volumes:
+      - ./hasura:/hasura
+    working_dir: /hasura
+    environment:
+      # Precedence order is flag > ENV vars > .env file values > configuration file values > default.
+      # -- https://hasura.io/docs/1.0/graphql/manual/hasura-cli/config-reference.html
+      HASURA_GRAPHQL_ADMIN_SECRET: "adminsecret"
+      HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
+      #
+      # - `hasura console` server interacts with this endpoint directly
+      # - our browser will also interact with this endpoint directly (via hasura console webui)
+      #
+      # so unfortunately, this means `hasura-server` hostname must be reachable from
+      # inside this docker container AND our host machine.
+      #
+      # NOTE
+      # i.e. add `127.0.0.1 hasura-server` to your `/etc/hosts` file
+      HASURA_GRAPHQL_ENDPOINT: "http://graphql-engine:${HASURA_PORT:-8080}"
   elm:
     build:
       context: .
