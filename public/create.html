@@ -83,6 +83,7 @@ function onYouTubeIframeAPIReady() {
 var flags = {
   currentTime: 0,
   videoId: videoId,
+  hasuraUrl: "{HASURA_GRAPHQL_ENDPOINT}"
 }
 var app = Elm.Create.init({
   node: document.getElementById('elm'),

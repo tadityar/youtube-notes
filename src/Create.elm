@@ -27,12 +27,14 @@ type alias Model =
     , videoId : String
     , title : String
     , isDarkMode : Bool
+    , hasuraUrl : String
     }
 
 
 type alias Flags =
     { currentTime : Float
     , videoId : String
+    , hasuraUrl : String
     }
 
 
@@ -63,6 +65,7 @@ init flags =
       , videoId = flags.videoId
       , title = "Note Title"
       , isDarkMode = False
+      , hasuraUrl = flags.hasuraUrl
       }
     , Cmd.none
     )
@@ -145,7 +148,7 @@ update msg model =
 
         OnPublishNote ->
             ( model
-            , publishNote "http://localhost:8080/v1/graphql"
+            , publishNote model.hasuraUrl
                 { input =
                     [ { id = GraphQL.Optional.Absent
                       , is_dark_mode = GraphQL.Optional.Present model.isDarkMode

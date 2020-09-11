@@ -34,10 +34,18 @@ node_modules: package.json
 build-graphql:
 	rm -f src/db/*.elm
 	which gq || npm install -g graphqurl
-	gq http://graphql-engine:8080/v1/graphql -H "X-Hasura-Admin-Secret: adminsecret" --introspect > schema.graphql
+	gq ${HASURA_GRAPHQL_ENDPOINT} -H "X-Hasura-Admin-Secret: ${HASURA_ADMIN_SECRET}" --introspect > schema.graphql
 	node scripts/run-graphql-to-elm.js
 .PHONY: build-graphql
 
 clean-graphql:
 	rm -rf src/GraphQL src/db/*.elm build/db
 .PHONY: clean-graphql
+
+build-app:
+	npm install elm@latest-0.19.1
+	make build-graphql
+	elm make src/Create.elm --output public/client.js
+	elm make src/View.elm --output public/view.js
+	node scripts/replace_with_env_vars.js
+.PHONY: build-app
