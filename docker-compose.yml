@@ -64,6 +64,9 @@ services:
       - graphql-engine
     networks:
       - youtube-notes
+    environment:
+      HASURA_ADMIN_SECRET: "adminsecret"
+      HASURA_GRAPHQL_ENDPOINT: "http://graphql-engine:8080/v1/graphql"
 volumes:
   db_data:
 

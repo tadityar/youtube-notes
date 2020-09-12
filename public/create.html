@@ -19,10 +19,7 @@
       </nav>
     </div>
   </div>
-  <div class="row">
-    <div class="col-md-8">
-      <div id="player"></div>
-    </div>
+  <!-- <div class="row">
     <div class="col-md-4">
       <div class="card" style="height:360px;">
         <div class="card-body overflow-auto">
@@ -38,7 +35,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </div> -->
 
   <div class="row">
     <div class="col-md-12">
@@ -63,32 +60,29 @@ const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
 const hasVideoId = urlParams.get('videoId');
 
-var videoId;
-if (hasVideoId) {
-  videoId = urlParams.get('videoId');
-} else {
-  videoId = "";
-}
-var player;
-function onYouTubeIframeAPIReady() {
-  player = new YT.Player('player', {
-    videoId: videoId,
-    events: {
-      'onReady': onPlayerReady,
-    }
-  });
-}
-
 // elm-stuff
 var flags = {
   currentTime: 0,
-  videoId: videoId,
   hasuraUrl: "{HASURA_GRAPHQL_ENDPOINT}"
 }
 var app = Elm.Create.init({
   node: document.getElementById('elm'),
   flags: flags
 });
+
+var player;
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player('player', {
+    events: {
+      'onReady': onPlayerReady,
+    }
+  });
+}
+
+app.ports.changeVideoId.subscribe(function(vid) {
+  player.loadVideoById(vid)
+});
+
 app.ports.seekVideo.subscribe(function(timeStamp) {
   player.seekTo(Number(timeStamp));
 });

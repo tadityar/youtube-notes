@@ -33,7 +33,6 @@ type alias Model =
 
 type alias Flags =
     { currentTime : Float
-    , videoId : String
     , hasuraUrl : String
     }
 
@@ -62,7 +61,7 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { currentTime = flags.currentTime
       , notes = Dict.fromList []
-      , videoId = flags.videoId
+      , videoId = ""
       , title = "Note Title"
       , isDarkMode = False
       , hasuraUrl = flags.hasuraUrl
@@ -82,7 +81,8 @@ view model =
                 False
     in
     div []
-        [ button [ class "btn btn-primary mb-1 mr-1", onClick OnAddNote, disabled addNoteDisabled ] [ text "Add note" ]
+        [ div [ class "row" ] [ div [ class "col-md-8" ] [ div [ id "player" ] [] ] ]
+        , button [ class "btn btn-primary mb-1 mr-1", onClick OnAddNote, disabled addNoteDisabled ] [ text "Add note" ]
         , button [ class "btn btn-outline-primary mb-1", onClick OnPublishNote ] [ text "Publish note" ]
         , h1 [] [ text model.title ]
         , div [ class "row" ]
@@ -141,7 +141,7 @@ update msg model =
             ( { model | videoId = s }, Cmd.none )
 
         OnChangeVideo videoId ->
-            ( model, Browser.Navigation.load ("/create.html?videoId=" ++ model.videoId) )
+            ( model, changeVideoId model.videoId )
 
         OnToggleDarkMode ->
             ( { model | isDarkMode = not model.isDarkMode }, Cmd.none )
@@ -362,3 +362,6 @@ port getTimestamp : (Float -> msg) -> Sub msg
 
 
 port seekVideo : Int -> Cmd msg
+
+
+port changeVideoId : String -> Cmd msg
