@@ -28,6 +28,7 @@ type alias Model =
     , title : String
     , isDarkMode : Bool
     , hasuraUrl : String
+    , currentStage : CreateStage
     }
 
 
@@ -51,6 +52,7 @@ type Msg
     | OnPublishNote
     | OnInsertNote (Result Http.Error Db.InsertNotes.Response)
     | OnTitleChange String
+    | OnVideoSet
 
 
 main =
@@ -65,13 +67,70 @@ init flags =
       , title = "Note Title"
       , isDarkMode = False
       , hasuraUrl = flags.hasuraUrl
+      , currentStage = PickVideo
       }
     , Cmd.none
     )
 
 
+type CreateStage
+    = PickVideo
+    | AddNotes
+
+
 view : Model -> Html Msg
 view model =
+    let
+        component =
+            case model.currentStage of
+                PickVideo ->
+                    videoPickerComponent model
+
+                AddNotes ->
+                    noteAdderComponent model
+    in
+    div []
+        [ div [ class "row" ] [ div [ class "col-md-8" ] [ div [ id "player" ] [] ] ]
+        , component
+        ]
+
+
+videoPickerComponent : Model -> Html Msg
+videoPickerComponent model =
+    let
+        isDisabled =
+            if String.length model.videoId == 0 || String.length model.title == 0 then
+                True
+
+            else
+                False
+    in
+    div [ class "row" ]
+        [ div [ class "col-md-12" ] [ h1 [] [ text model.title ] ]
+        , div [ class "col-md-12" ]
+            [ div [ class "card" ]
+                [ div [ class "card-body" ]
+                    [ form []
+                        [ div [ class "form-group" ]
+                            [ label [] [ text "Title" ]
+                            , input [ class "form-control", value model.title, onInput OnTitleChange ] []
+                            , small [ class "form-text text-muted" ] [ text "Your note title" ]
+                            ]
+                        , div [ class "form-group" ]
+                            [ label [] [ text "Video ID" ]
+                            , input [ class "form-control", value model.videoId, onInput OnVideoIdChange ] []
+                            , small [ class "form-text text-muted" ] [ text "Get your videoId by clicking 'Share' on the YouTube page of your video. There will be a pop up with a link (e.g. https://youtu.be/gCKE-tuMies). Your video id is whatever is after the /, in this case it’s gCKE-tuMies." ]
+                            ]
+                        , button [ class "btn btn-primary", type_ "button", onClick OnVideoSet, disabled isDisabled ] [ text "Start adding note" ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+
+
+noteAdderComponent : Model -> Html Msg
+noteAdderComponent model =
     let
         addNoteDisabled =
             if Dict.member (Basics.floor model.currentTime) model.notes then
@@ -80,14 +139,15 @@ view model =
             else
                 False
     in
-    div []
-        [ div [ class "row" ] [ div [ class "col-md-8" ] [ div [ id "player" ] [] ] ]
-        , button [ class "btn btn-primary mb-1 mr-1", onClick OnAddNote, disabled addNoteDisabled ] [ text "Add note" ]
-        , button [ class "btn btn-outline-primary mb-1", onClick OnPublishNote ] [ text "Publish note" ]
-        , h1 [] [ text model.title ]
-        , div [ class "row" ]
-            [ div [ class "col-md-9" ] [ noteDisplay model ], div [ class "col-md-3" ] [ noteSettings model ] ]
-        , noteForm model
+    div [ class "row" ]
+        [ div [ class "col-md-12" ]
+            [ button [ class "btn btn-primary mb-1 mr-1", onClick OnAddNote, disabled addNoteDisabled ] [ text "Add note" ]
+            , button [ class "btn btn-outline-primary mb-1", onClick OnPublishNote ] [ text "Publish note" ]
+            , h1 [] [ text model.title ]
+            , div [ class "row" ]
+                [ div [ class "col-md-9" ] [ noteDisplay model ], div [ class "col-md-3" ] [ noteSettings model ] ]
+            , noteForm model
+            ]
         ]
 
 
@@ -195,6 +255,9 @@ update msg model =
 
         OnTitleChange s ->
             ( { model | title = s }, Cmd.none )
+
+        OnVideoSet ->
+            ( { model | currentStage = AddNotes }, changeVideoId model.videoId )
 
 
 subscriptions : Model -> Sub Msg
