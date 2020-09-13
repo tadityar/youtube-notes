@@ -2,7 +2,8 @@ port module Main exposing (deadEndsToString, isAfter, isBefore, isOnOrBefore, ma
 
 import Browser
 import Browser.Navigation
-import Db.InsertNotes
+import Db.InsertNotes exposing (Notes)
+import Db.NotesByPK
 import Dict exposing (Dict)
 import Ext.GraphQL.Http
 import Ext.Json.JsonB exposing (JsonB)
@@ -11,7 +12,7 @@ import GraphQL.Optional
 import GraphQL.Response
 import Html exposing (Html, a, button, div, form, h1, input, label, li, nav, p, small, span, text, textarea, ul)
 import Html.Attributes exposing (checked, class, disabled, for, href, id, readonly, step, title, type_, value)
-import Html.Events exposing (onCheck, onClick, onInput, onSubmit)
+import Html.Events exposing (on, onCheck, onClick, onInput, onSubmit)
 import Http
 import Markdown.Block as Block exposing (Block, Inline, ListItem(..), Task(..))
 import Markdown.Html
@@ -25,12 +26,10 @@ import Url
 
 type alias Model =
     { currentTime : Float
-    , notes : Dict Int String
-    , videoId : String
-    , title : String
-    , isDarkMode : Bool
     , hasuraUrl : String
     , currentStage : CreateStage
+    , currentNote : Maybe Db.NotesByPK.Notes
+    , currentCreateNote : NotesInput
 
     --
     , navKey : Browser.Navigation.Key
@@ -49,6 +48,8 @@ type Msg
     | OnSeekVideo Int
     | OnNextNote ( Int, String )
     | OnPrevNote ( Int, String )
+    | OnNextNoteCreate ( Int, String )
+    | OnPrevNoteCreate ( Int, String )
     | OnAddNote
     | OnNoteChanged Int String
     | OnNoteDelete Int
@@ -60,6 +61,7 @@ type Msg
     | OnTitleChange String
     | OnVideoSet
     | OnCreateLinkClick
+    | OnNotestByPK (Result Http.Error Db.NotesByPK.Response)
       --
     | OnUrlRequest Browser.UrlRequest
     | OnUrlChange Url.Url
@@ -81,14 +83,12 @@ init flags url navKey =
     let
         model =
             { currentTime = flags.currentTime
-            , notes = Dict.fromList []
-            , videoId = ""
-            , title = "Note Title"
-            , isDarkMode = False
             , hasuraUrl = flags.hasuraUrl
             , currentStage = PickVideo
             , navKey = navKey
             , currentRoute = Route.NotFound
+            , currentNote = Nothing
+            , currentCreateNote = emptyNotes
             }
     in
     updateWithURL url model
@@ -108,10 +108,15 @@ view model =
                     createPage model
 
                 Route.Note s ->
-                    [ div
-                        []
-                        [ text s ]
-                    ]
+                    case model.currentNote of
+                        Just notes ->
+                            viewPage notes model.currentTime
+
+                        Nothing ->
+                            [ div
+                                []
+                                [ text "not found" ]
+                            ]
 
                 Route.Homepage ->
                     homePage
@@ -133,6 +138,10 @@ view model =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        oldCreateNote =
+            model.currentCreateNote
+    in
     case Debug.log "update" msg of
         OnUrlRequest (Browser.Internal url) ->
             ( model, Browser.Navigation.pushUrl model.navKey (Url.toString url) )
@@ -157,19 +166,49 @@ update msg model =
             ( { model | currentTime = toFloat timeStamp }, seekVideo timeStamp )
 
         OnNextNote currentNote ->
+            case model.currentNote of
+                Just notesNotesByPKDb ->
+                    let
+                        notesAfter =
+                            List.filter (isAfter (toFloat (Tuple.first currentNote))) (Dict.toList (Ext.Json.JsonB.dict notesNotesByPKDb.notes))
+
+                        nextNote =
+                            Maybe.withDefault ( 0, "" ) (List.head notesAfter)
+                    in
+                    ( { model | currentTime = toFloat (Tuple.first nextNote) }, seekVideo (Tuple.first nextNote) )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        OnPrevNote currentNote ->
+            case model.currentNote of
+                Just notesNotesByPKDb ->
+                    let
+                        notesBefore =
+                            List.filter (isBefore (toFloat (Tuple.first currentNote))) (Dict.toList (Ext.Json.JsonB.dict notesNotesByPKDb.notes))
+
+                        prevNote =
+                            Maybe.withDefault ( 0, "" ) (List.head (List.reverse notesBefore))
+                    in
+                    ( { model | currentTime = toFloat (Tuple.first prevNote) }, seekVideo (Tuple.first prevNote) )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        OnNextNoteCreate currentNote ->
             let
                 notesAfter =
-                    List.filter (isAfter (toFloat (Tuple.first currentNote))) (Dict.toList model.notes)
+                    List.filter (isAfter (toFloat (Tuple.first currentNote))) (Dict.toList model.currentCreateNote.notes)
 
                 nextNote =
                     Maybe.withDefault ( 0, "" ) (List.head notesAfter)
             in
             ( { model | currentTime = toFloat (Tuple.first nextNote) }, seekVideo (Tuple.first nextNote) )
 
-        OnPrevNote currentNote ->
+        OnPrevNoteCreate currentNote ->
             let
                 notesBefore =
-                    List.filter (isBefore (toFloat (Tuple.first currentNote))) (Dict.toList model.notes)
+                    List.filter (isBefore (toFloat (Tuple.first currentNote))) (Dict.toList model.currentCreateNote.notes)
 
                 prevNote =
                     Maybe.withDefault ( 0, "" ) (List.head (List.reverse notesBefore))
@@ -177,40 +216,48 @@ update msg model =
             ( { model | currentTime = toFloat (Tuple.first prevNote) }, seekVideo (Tuple.first prevNote) )
 
         OnAddNote ->
-            ( { model | notes = Dict.insert (Basics.floor model.currentTime) "" model.notes }, Cmd.none )
+            let
+                newCreateNote =
+                    { oldCreateNote | notes = Dict.insert (Basics.floor model.currentTime) "" oldCreateNote.notes }
+            in
+            ( { model | currentCreateNote = newCreateNote }, Cmd.none )
 
         OnNoteChanged ts s ->
             let
-                newNote =
-                    Dict.update ts (\_ -> Just s) model.notes
+                newNotes =
+                    Dict.update ts (\_ -> Just s) model.currentCreateNote.notes
             in
-            ( { model | notes = newNote }, Cmd.none )
+            ( { model | currentCreateNote = { oldCreateNote | notes = newNotes } }, Cmd.none )
 
         OnNoteDelete ts ->
             let
                 newNotes =
-                    Dict.remove ts model.notes
+                    Dict.remove ts model.currentCreateNote.notes
             in
-            ( { model | notes = newNotes }, Cmd.none )
+            ( { model | currentCreateNote = { oldCreateNote | notes = newNotes } }, Cmd.none )
 
         OnVideoIdChange s ->
-            ( { model | videoId = s }, Cmd.none )
+            ( { model | currentCreateNote = { oldCreateNote | videoId = s } }, Cmd.none )
 
         OnChangeVideo videoId ->
-            ( model, changeVideoId model.videoId )
+            ( model, changeVideoId model.currentCreateNote.videoId )
 
         OnToggleDarkMode ->
-            ( { model | isDarkMode = not model.isDarkMode }, Cmd.none )
+            let
+                oldDarkMode =
+                    oldCreateNote.is_dark_mode
+            in
+            ( { model | currentCreateNote = { oldCreateNote | is_dark_mode = not oldDarkMode } }, Cmd.none )
 
         OnPublishNote ->
             ( model
             , publishNote model.hasuraUrl
                 { input =
                     [ { id = GraphQL.Optional.Absent
-                      , is_dark_mode = GraphQL.Optional.Present model.isDarkMode
-                      , notes = GraphQL.Optional.Present (Ext.Json.JsonB.JsonB model.notes)
-                      , title = GraphQL.Optional.Present model.title
-                      , videoId = GraphQL.Optional.Present model.videoId
+                      , is_dark_mode = GraphQL.Optional.Present model.currentCreateNote.is_dark_mode
+                      , notes = GraphQL.Optional.Present (Ext.Json.JsonB.JsonB model.currentCreateNote.notes)
+                      , title = GraphQL.Optional.Present model.currentCreateNote.title
+                      , videoId = GraphQL.Optional.Present model.currentCreateNote.videoId
                       }
                     ]
                 }
@@ -226,15 +273,7 @@ update msg model =
                         cmd =
                             case maybeCreatedNote of
                                 Just note ->
-                                    let
-                                        darkStr =
-                                            if note.is_dark_mode then
-                                                "1"
-
-                                            else
-                                                "0"
-                                    in
-                                    Browser.Navigation.load ("view.html?videoId=" ++ model.videoId ++ "&noteId=" ++ Ext.Json.UUID.string note.id ++ "&isDark=" ++ darkStr ++ "&title=" ++ note.title)
+                                    Browser.Navigation.load (Route.toString (Route.Note (Ext.Json.UUID.string note.id)))
 
                                 Nothing ->
                                     Cmd.none
@@ -249,11 +288,35 @@ update msg model =
                     -- TODO: alert that there was an error
                     ( model, Cmd.none )
 
+        OnNotestByPK result ->
+            case result of
+                Ok (GraphQL.Response.Data query) ->
+                    let
+                        ( newModel, cmd ) =
+                            case query.notes_by_pk of
+                                Just note ->
+                                    ( { model | currentNote = Just note }
+                                    , Browser.Navigation.pushUrl model.navKey (Route.toString (Route.Note (Ext.Json.UUID.string note.id)))
+                                    )
+
+                                Nothing ->
+                                    ( model, Browser.Navigation.pushUrl model.navKey (Route.toString Route.NotFound) )
+                    in
+                    ( newModel, cmd )
+
+                Ok (GraphQL.Response.Errors errors _) ->
+                    -- TODO: alert that there was an error
+                    ( model, Cmd.none )
+
+                Err error ->
+                    -- TODO: alert that there was an error
+                    ( model, Cmd.none )
+
         OnTitleChange s ->
-            ( { model | title = s }, Cmd.none )
+            ( { model | currentCreateNote = { oldCreateNote | title = s } }, Cmd.none )
 
         OnVideoSet ->
-            ( { model | currentStage = AddNotes }, changeVideoId model.videoId )
+            ( { model | currentStage = AddNotes }, changeVideoId model.currentCreateNote.videoId )
 
         OnCreateLinkClick ->
             ( model, Browser.Navigation.load (Route.toString Route.Create) )
@@ -275,8 +338,13 @@ updateWithURL url oldModel =
         Route.Create ->
             ( newModel, Cmd.none )
 
-        Route.Note videoId ->
-            ( { newModel | videoId = videoId }, Cmd.none )
+        Route.Note noteId ->
+            case newModel.currentNote of
+                Just note ->
+                    ( newModel, changeVideoId note.videoId )
+
+                Nothing ->
+                    ( newModel, notesByPK newModel.hasuraUrl { id = Ext.Json.UUID.UUID noteId } )
 
         Route.NotFound ->
             ( newModel, Cmd.none )
@@ -298,15 +366,15 @@ noteSettings model =
             [ form []
                 [ div [ class "form-group" ]
                     [ label [] [ text "Video ID" ]
-                    , input [ class "form-control", value model.videoId, onInput OnVideoIdChange ] []
+                    , input [ class "form-control", value model.currentCreateNote.videoId, onInput OnVideoIdChange ] []
                     ]
-                , button [ class "btn btn-danger", type_ "button", onClick (OnChangeVideo model.videoId) ] [ text "Change Video" ]
+                , button [ class "btn btn-danger", type_ "button", onClick (OnChangeVideo model.currentCreateNote.videoId) ] [ text "Change Video" ]
                 , div [ class "form-group" ]
                     [ label [] [ text "Title" ]
-                    , input [ class "form-control", value model.title, onInput OnTitleChange ] []
+                    , input [ class "form-control", value model.currentCreateNote.title, onInput OnTitleChange ] []
                     ]
                 , div [ class "custom-control custom-switch" ]
-                    [ input [ type_ "checkbox", class "custom-control-input", id "dark-mode-switch", checked model.isDarkMode, onCheck (\_ -> OnToggleDarkMode) ] []
+                    [ input [ type_ "checkbox", class "custom-control-input", id "dark-mode-switch", checked model.currentCreateNote.is_dark_mode, onCheck (\_ -> OnToggleDarkMode) ] []
                     , label [ class "custom-control-label", for "dark-mode-switch" ] [ text "Dark Mode" ]
                     ]
                 ]
@@ -319,7 +387,7 @@ noteForm model =
     form []
         (List.map
             (noteItemForm model)
-            (List.reverse (Dict.toList model.notes))
+            (List.reverse (Dict.toList model.currentCreateNote.notes))
         )
 
 
@@ -345,11 +413,11 @@ noteItemForm model currentNote =
         ]
 
 
-noteDisplay : Model -> Html Msg
-noteDisplay model =
+noteDisplayCreate : NotesInput -> Float -> Html Msg
+noteDisplayCreate notes currentTime =
     let
         passedNotes =
-            List.filter (isOnOrBefore model.currentTime) (Dict.toList model.notes)
+            List.filter (isOnOrBefore currentTime) (Dict.toList notes.notes)
 
         currentNote =
             Maybe.withDefault ( 0, "" ) (List.head (List.reverse passedNotes))
@@ -362,7 +430,7 @@ noteDisplay model =
                 False
 
         nextBtnDisabled =
-            if List.length passedNotes == Dict.size model.notes then
+            if List.length passedNotes == Dict.size notes.notes then
                 True
 
             else
@@ -382,7 +450,65 @@ noteDisplay model =
                     div [ class "card-text" ] [ text errors ]
 
         ( cardClass, btnClass ) =
-            if model.isDarkMode then
+            if notes.is_dark_mode then
+                ( "card bg-dark text-light", "btn btn-outline-light" )
+
+            else
+                ( "card", "btn btn-outline-secondary" )
+    in
+    div [ class cardClass ]
+        [ div [ class "card-body" ]
+            [ cardBody
+            , div [ class "btn-group" ]
+                [ button [ class btnClass, onClick (OnPrevNoteCreate currentNote), disabled prevBtnDisabled ]
+                    [ text "prev" ]
+                , button [ class btnClass, onClick (OnNextNoteCreate currentNote), disabled nextBtnDisabled ] [ text "next" ] -- TODO: Disable when there's no prev or next
+                ]
+            ]
+        ]
+
+
+noteDisplay : Db.NotesByPK.Notes -> Float -> Html Msg
+noteDisplay notes currentTime =
+    let
+        notesDict =
+            Ext.Json.JsonB.dict notes.notes
+
+        passedNotes =
+            List.filter (isOnOrBefore currentTime) (Dict.toList notesDict)
+
+        currentNote =
+            Maybe.withDefault ( 0, "" ) (List.head (List.reverse passedNotes))
+
+        prevBtnDisabled =
+            if List.length passedNotes < 2 then
+                True
+
+            else
+                False
+
+        nextBtnDisabled =
+            if List.length passedNotes == Dict.size notesDict then
+                True
+
+            else
+                False
+
+        cardBody =
+            case
+                Tuple.second currentNote
+                    |> Markdown.Parser.parse
+                    |> Result.mapError deadEndsToString
+                    |> Result.andThen (\ast -> Markdown.Renderer.render Markdown.Renderer.defaultHtmlRenderer ast)
+            of
+                Ok rendered ->
+                    div [ class "card-text" ] rendered
+
+                Err errors ->
+                    div [ class "card-text" ] [ text errors ]
+
+        ( cardClass, btnClass ) =
+            if notes.is_dark_mode then
                 ( "card bg-dark text-light", "btn btn-outline-light" )
 
             else
@@ -431,26 +557,26 @@ videoPickerComponent : Model -> Html Msg
 videoPickerComponent model =
     let
         isDisabled =
-            if String.length model.videoId == 0 || String.length model.title == 0 then
+            if String.length model.currentCreateNote.videoId == 0 || String.length model.currentCreateNote.title == 0 then
                 True
 
             else
                 False
     in
     div [ class "row" ]
-        [ div [ class "col-md-12" ] [ h1 [] [ text model.title ] ]
+        [ div [ class "col-md-12" ] [ h1 [] [ text model.currentCreateNote.title ] ]
         , div [ class "col-md-12" ]
             [ div [ class "card" ]
                 [ div [ class "card-body" ]
                     [ form []
                         [ div [ class "form-group" ]
                             [ label [] [ text "Title" ]
-                            , input [ class "form-control", value model.title, onInput OnTitleChange ] []
+                            , input [ class "form-control", value model.currentCreateNote.title, onInput OnTitleChange ] []
                             , small [ class "form-text text-muted" ] [ text "Your note title" ]
                             ]
                         , div [ class "form-group" ]
                             [ label [] [ text "Video ID" ]
-                            , input [ class "form-control", value model.videoId, onInput OnVideoIdChange ] []
+                            , input [ class "form-control", value model.currentCreateNote.videoId, onInput OnVideoIdChange ] []
                             , small [ class "form-text text-muted" ] [ text "Get your videoId by clicking 'Share' on the YouTube page of your video. There will be a pop up with a link (e.g. https://youtu.be/gCKE-tuMies). Your video id is whatever is after the /, in this case it’s gCKE-tuMies." ]
                             ]
                         , button [ class "btn btn-primary", type_ "button", onClick OnVideoSet, disabled isDisabled ] [ text "Start adding note" ]
@@ -465,7 +591,7 @@ noteAdderComponent : Model -> Html Msg
 noteAdderComponent model =
     let
         addNoteDisabled =
-            if Dict.member (Basics.floor model.currentTime) model.notes then
+            if Dict.member (Basics.floor model.currentTime) model.currentCreateNote.notes then
                 True
 
             else
@@ -475,9 +601,9 @@ noteAdderComponent model =
         [ div [ class "col-md-12" ]
             [ button [ class "btn btn-primary mb-1 mr-1", onClick OnAddNote, disabled addNoteDisabled ] [ text "Add note" ]
             , button [ class "btn btn-outline-primary mb-1", onClick OnPublishNote ] [ text "Publish note" ]
-            , h1 [] [ text model.title ]
+            , h1 [] [ text model.currentCreateNote.title ]
             , div [ class "row" ]
-                [ div [ class "col-md-9" ] [ noteDisplay model ], div [ class "col-md-3" ] [ noteSettings model ] ]
+                [ div [ class "col-md-9" ] [ noteDisplayCreate model.currentCreateNote model.currentTime ], div [ class "col-md-3" ] [ noteSettings model ] ]
             , noteForm model
             ]
         ]
@@ -505,6 +631,16 @@ homePage =
         [ h1 [ class "display-4" ] [ text "Welcome to YouTube Notes!" ]
         , p [ class "lead" ] [ text "A web application to add timestamp-tied notes to a YouTube video" ]
         , a [ class "btn btn-primary btn-lg", href "", onClick OnCreateLinkClick ] [ text "Start Creating" ]
+        ]
+    ]
+
+
+viewPage : Db.NotesByPK.Notes -> Float -> List (Html Msg)
+viewPage notes currentTime =
+    [ div [ class "row" ]
+        [ div [ class "col-md-12" ] [ h1 [ id "title" ] [ text notes.title ] ]
+        , div [ class "col-md-8" ] [ div [ id "player" ] [] ]
+        , div [ class "col-md-4" ] [ noteDisplay notes currentTime ]
         ]
     ]
 
@@ -553,11 +689,36 @@ isAfter currentTime ( time, _ ) =
         False
 
 
+httpTimeout : Maybe Float
+httpTimeout =
+    Just 60000.0
+
+
 publishNote : String -> Db.InsertNotes.Variables -> Cmd Msg
 publishNote apiUrl variables =
     Db.InsertNotes.mutation variables
-        |> Ext.GraphQL.Http.post { headers = [ Http.header "X-Hasura-Role" "public" ], url = apiUrl, timeout = Just 60000.0 }
+        |> Ext.GraphQL.Http.post { headers = [ Http.header "X-Hasura-Role" "public" ], url = apiUrl, timeout = httpTimeout }
         |> Task.attempt OnInsertNote
+
+
+notesByPK : String -> Db.NotesByPK.Variables -> Cmd Msg
+notesByPK apiUrl variables =
+    Db.NotesByPK.query variables
+        |> Ext.GraphQL.Http.post { headers = [ Http.header "X-Hasura-Role" "public" ], url = apiUrl, timeout = httpTimeout }
+        |> Task.attempt OnNotestByPK
+
+
+type alias NotesInput =
+    { is_dark_mode : Bool
+    , notes : Dict Int String
+    , title : String
+    , videoId : String
+    }
+
+
+emptyNotes : NotesInput
+emptyNotes =
+    { is_dark_mode = False, notes = Dict.fromList [], title = "Note Title", videoId = "" }
 
 
 port getTimestamp : (Float -> msg) -> Sub msg

@@ -44,19 +44,27 @@ function onYouTubeIframeAPIReady() {
   });
 }
 
-app.ports.changeVideoId.subscribe(function(vid) {
-  player.loadVideoById(vid)
-});
-
-app.ports.seekVideo.subscribe(function(timeStamp) {
-  player.seekTo(Number(timeStamp));
-});
-
 ready = false;
 function onPlayerReady(event) {
   ready = true;
   setInterval(getTimestamp, 500, app, ready)
 }
+
+app.ports.changeVideoId.subscribe(function(vid) {
+  function waitForElement(){
+    if(ready == true){
+      player.loadVideoById(vid)
+    }
+    else{
+        setTimeout(waitForElement, 250);
+    }
+  }
+  waitForElement()
+});
+
+app.ports.seekVideo.subscribe(function(timeStamp) {
+  player.seekTo(Number(timeStamp));
+});
 
 function getTimestamp(app, ready) {
   if (ready) {

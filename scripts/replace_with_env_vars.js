@@ -1,7 +1,7 @@
 const path = require('path')
 const fs = require('fs')
 
-const srcFiles = ['public/index.html', 'public/view.html']
+const srcFiles = ['public/index.html']
 
 srcFiles.forEach((srcFile, i) => {
   const srcContent = fs.readFileSync(srcFile, { encoding: 'utf8' })

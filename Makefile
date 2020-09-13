@@ -16,13 +16,6 @@ elm-live-create:
 	-- --output public/client.js
 .PHONY: elm-live-create
 
-elm-live-view:
-	elm-live src/View.elm --no-server \
-	--dir=public \
-	--start-page=view.html \
-	-- --output public/view.js
-.PHONY: elm-live-view
-
 infra-dependencies:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up graphql-engine graphql-console
 
@@ -48,6 +41,5 @@ build-app:
 	npm install elm@latest-0.19.1
 	make build-graphql
 	elm make src/Main.elm --output public/client.js
-	elm make src/View.elm --output public/view.js
 	node scripts/replace_with_env_vars.js
 .PHONY: build-app
