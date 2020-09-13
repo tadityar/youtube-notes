@@ -24,3 +24,7 @@ blockquote p {
 .bg-dark pre {
   color: #d3d3d3;
 }
+
+a {
+  cursor: pointer;
+}

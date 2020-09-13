@@ -9,7 +9,7 @@ import Ext.Json.JsonB exposing (JsonB)
 import Ext.Json.UUID
 import GraphQL.Optional
 import GraphQL.Response
-import Html exposing (Html, a, button, div, form, h1, input, label, nav, small, span, text, textarea)
+import Html exposing (Html, a, button, div, form, h1, input, label, li, nav, p, small, span, text, textarea, ul)
 import Html.Attributes exposing (checked, class, disabled, for, href, id, readonly, step, title, type_, value)
 import Html.Events exposing (onCheck, onClick, onInput, onSubmit)
 import Http
@@ -102,20 +102,10 @@ type CreateStage
 view : Model -> Browser.Document Msg
 view model =
     let
-        component =
-            case model.currentStage of
-                PickVideo ->
-                    videoPickerComponent model
-
-                AddNotes ->
-                    noteAdderComponent model
-
         page =
             case model.currentRoute of
                 Route.Create ->
-                    [ div [ class "row" ] [ div [ class "col-md-8" ] [ div [ id "player" ] [] ] ]
-                    , component
-                    ]
+                    createPage model
 
                 Route.Note s ->
                     [ div
@@ -124,13 +114,7 @@ view model =
                     ]
 
                 Route.Homepage ->
-                    [ div
-                        []
-                        [ text "homepage"
-                        , a [ onClick OnCreateLinkClick ] [ text "create" ]
-                        , a [ href (Route.toString (Route.Note "alskdjalksdjlaskjdakl")) ] [ text "note" ]
-                        ]
-                    ]
+                    homePage
 
                 Route.NotFound ->
                     [ div
@@ -144,83 +128,6 @@ view model =
             (List.concat
                 [ [ headerComponent ], page, [ footerComponent ] ]
             )
-        ]
-
-
-headerComponent : Html Msg
-headerComponent =
-    div [ class "row" ]
-        [ div [ class "col-sm-12" ]
-            [ nav [ class "navbar navbar-light bg-white mb-2" ] [ a [ class "navbar-brand", href (Route.toString Route.Homepage) ] [ text "YT Notes" ] ]
-            ]
-        ]
-
-
-footerComponent : Html Msg
-footerComponent =
-    div [ class "row" ]
-        [ div [ class "col-sm-12 text-center" ]
-            [ span [] [ text "© 2020 by " ]
-            , a [ href "https://tadityar.me" ] [ text "tadityar" ]
-            , span [] [ text " - " ]
-            , a [ href "https://github.com/tadityar/youtube-notes" ] [ text "source code" ]
-            ]
-        ]
-
-
-videoPickerComponent : Model -> Html Msg
-videoPickerComponent model =
-    let
-        isDisabled =
-            if String.length model.videoId == 0 || String.length model.title == 0 then
-                True
-
-            else
-                False
-    in
-    div [ class "row" ]
-        [ div [ class "col-md-12" ] [ h1 [] [ text model.title ] ]
-        , div [ class "col-md-12" ]
-            [ div [ class "card" ]
-                [ div [ class "card-body" ]
-                    [ form []
-                        [ div [ class "form-group" ]
-                            [ label [] [ text "Title" ]
-                            , input [ class "form-control", value model.title, onInput OnTitleChange ] []
-                            , small [ class "form-text text-muted" ] [ text "Your note title" ]
-                            ]
-                        , div [ class "form-group" ]
-                            [ label [] [ text "Video ID" ]
-                            , input [ class "form-control", value model.videoId, onInput OnVideoIdChange ] []
-                            , small [ class "form-text text-muted" ] [ text "Get your videoId by clicking 'Share' on the YouTube page of your video. There will be a pop up with a link (e.g. https://youtu.be/gCKE-tuMies). Your video id is whatever is after the /, in this case it’s gCKE-tuMies." ]
-                            ]
-                        , button [ class "btn btn-primary", type_ "button", onClick OnVideoSet, disabled isDisabled ] [ text "Start adding note" ]
-                        ]
-                    ]
-                ]
-            ]
-        ]
-
-
-noteAdderComponent : Model -> Html Msg
-noteAdderComponent model =
-    let
-        addNoteDisabled =
-            if Dict.member (Basics.floor model.currentTime) model.notes then
-                True
-
-            else
-                False
-    in
-    div [ class "row" ]
-        [ div [ class "col-md-12" ]
-            [ button [ class "btn btn-primary mb-1 mr-1", onClick OnAddNote, disabled addNoteDisabled ] [ text "Add note" ]
-            , button [ class "btn btn-outline-primary mb-1", onClick OnPublishNote ] [ text "Publish note" ]
-            , h1 [] [ text model.title ]
-            , div [ class "row" ]
-                [ div [ class "col-md-9" ] [ noteDisplay model ], div [ class "col-md-3" ] [ noteSettings model ] ]
-            , noteForm model
-            ]
         ]
 
 
@@ -380,6 +287,10 @@ subscriptions model =
     getTimestamp ReceivedVideoTimestamp
 
 
+
+--
+
+
 noteSettings : Model -> Html Msg
 noteSettings model =
     div [ class "card" ]
@@ -487,6 +398,119 @@ noteDisplay model =
                 ]
             ]
         ]
+
+
+headerComponent : Html Msg
+headerComponent =
+    div [ class "row" ]
+        [ div [ class "col-sm-12" ]
+            [ nav [ class "navbar navbar-light navbar-expand-sm bg-white mb-2" ]
+                [ a [ class "navbar-brand", href (Route.toString Route.Homepage) ] [ text "YT Notes" ]
+                , ul [ class "nav navbar-nav" ]
+                    [ li [ class "nav-item active" ] [ a [ class "nav-link", href (Route.toString Route.Homepage) ] [ text "Home" ] ]
+                    , li [ class "nav-item" ] [ a [ class "nav-link", onClick OnCreateLinkClick ] [ text "Create" ] ]
+                    ]
+                ]
+            ]
+        ]
+
+
+footerComponent : Html Msg
+footerComponent =
+    div [ class "row" ]
+        [ div [ class "col-sm-12 text-center" ]
+            [ span [] [ text "© 2020 by " ]
+            , a [ href "https://tadityar.me" ] [ text "tadityar" ]
+            , span [] [ text " - " ]
+            , a [ href "https://github.com/tadityar/youtube-notes" ] [ text "source code" ]
+            ]
+        ]
+
+
+videoPickerComponent : Model -> Html Msg
+videoPickerComponent model =
+    let
+        isDisabled =
+            if String.length model.videoId == 0 || String.length model.title == 0 then
+                True
+
+            else
+                False
+    in
+    div [ class "row" ]
+        [ div [ class "col-md-12" ] [ h1 [] [ text model.title ] ]
+        , div [ class "col-md-12" ]
+            [ div [ class "card" ]
+                [ div [ class "card-body" ]
+                    [ form []
+                        [ div [ class "form-group" ]
+                            [ label [] [ text "Title" ]
+                            , input [ class "form-control", value model.title, onInput OnTitleChange ] []
+                            , small [ class "form-text text-muted" ] [ text "Your note title" ]
+                            ]
+                        , div [ class "form-group" ]
+                            [ label [] [ text "Video ID" ]
+                            , input [ class "form-control", value model.videoId, onInput OnVideoIdChange ] []
+                            , small [ class "form-text text-muted" ] [ text "Get your videoId by clicking 'Share' on the YouTube page of your video. There will be a pop up with a link (e.g. https://youtu.be/gCKE-tuMies). Your video id is whatever is after the /, in this case it’s gCKE-tuMies." ]
+                            ]
+                        , button [ class "btn btn-primary", type_ "button", onClick OnVideoSet, disabled isDisabled ] [ text "Start adding note" ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+
+
+noteAdderComponent : Model -> Html Msg
+noteAdderComponent model =
+    let
+        addNoteDisabled =
+            if Dict.member (Basics.floor model.currentTime) model.notes then
+                True
+
+            else
+                False
+    in
+    div [ class "row" ]
+        [ div [ class "col-md-12" ]
+            [ button [ class "btn btn-primary mb-1 mr-1", onClick OnAddNote, disabled addNoteDisabled ] [ text "Add note" ]
+            , button [ class "btn btn-outline-primary mb-1", onClick OnPublishNote ] [ text "Publish note" ]
+            , h1 [] [ text model.title ]
+            , div [ class "row" ]
+                [ div [ class "col-md-9" ] [ noteDisplay model ], div [ class "col-md-3" ] [ noteSettings model ] ]
+            , noteForm model
+            ]
+        ]
+
+
+createPage : Model -> List (Html Msg)
+createPage model =
+    let
+        component =
+            case model.currentStage of
+                PickVideo ->
+                    videoPickerComponent model
+
+                AddNotes ->
+                    noteAdderComponent model
+    in
+    [ div [ class "row" ] [ div [ class "col-md-8" ] [ div [ id "player" ] [] ] ]
+    , component
+    ]
+
+
+homePage : List (Html Msg)
+homePage =
+    [ div [ class "jumbotron" ]
+        [ h1 [ class "display-4" ] [ text "Welcome to YouTube Notes!" ]
+        , p [ class "lead" ] [ text "A web application to add timestamp-tied notes to a YouTube video" ]
+        , a [ class "btn btn-primary btn-lg", href "", onClick OnCreateLinkClick ] [ text "Start Creating" ]
+        ]
+    ]
+
+
+
+--
 
 
 deadEndsToString deadEnds =
