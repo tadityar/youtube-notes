@@ -1,4 +1,4 @@
-port module Create exposing (deadEndsToString, isAfter, isBefore, isOnOrBefore, main)
+port module Main exposing (deadEndsToString, isAfter, isBefore, isOnOrBefore, main)
 
 import Browser
 import Browser.Navigation
@@ -151,7 +151,7 @@ headerComponent : Html Msg
 headerComponent =
     div [ class "row" ]
         [ div [ class "col-sm-12" ]
-            [ nav [ class "navbar navbar-light bg-white mb-2" ] [ span [ class "navbar-brand mb-0 h1" ] [ text "YT Notes" ] ]
+            [ nav [ class "navbar navbar-light bg-white mb-2" ] [ a [ class "navbar-brand", href (Route.toString Route.Homepage) ] [ text "YT Notes" ] ]
             ]
         ]
 

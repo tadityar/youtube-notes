@@ -9,7 +9,7 @@ elm: runtime-dependencies
 .PHONY: elm
 
 elm-live-create:
-	elm-live src/Create.elm \
+	elm-live src/Main.elm \
 	--dir=public \
 	--pushstate \
 	--start-page=index.html \
@@ -47,7 +47,7 @@ clean-graphql:
 build-app:
 	npm install elm@latest-0.19.1
 	make build-graphql
-	elm make src/Create.elm --output public/client.js
+	elm make src/Main.elm --output public/client.js
 	elm make src/View.elm --output public/view.js
 	node scripts/replace_with_env_vars.js
 .PHONY: build-app
