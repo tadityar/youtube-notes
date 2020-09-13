@@ -9,7 +9,7 @@ import Ext.Json.JsonB exposing (JsonB)
 import Ext.Json.UUID
 import GraphQL.Optional
 import GraphQL.Response
-import Html exposing (Html, a, button, div, form, h1, input, label, small, text, textarea)
+import Html exposing (Html, a, button, div, form, h1, input, label, nav, small, span, text, textarea)
 import Html.Attributes exposing (checked, class, disabled, for, href, id, readonly, step, type_, value)
 import Html.Events exposing (onCheck, onClick, onInput, onSubmit)
 import Http
@@ -89,9 +89,32 @@ view model =
                 AddNotes ->
                     noteAdderComponent model
     in
-    div []
-        [ div [ class "row" ] [ div [ class "col-md-8" ] [ div [ id "player" ] [] ] ]
+    div [ class "container" ]
+        [ headerComponent
+        , div [ class "row" ] [ div [ class "col-md-8" ] [ div [ id "player" ] [] ] ]
         , component
+        , footerComponent
+        ]
+
+
+headerComponent : Html Msg
+headerComponent =
+    div [ class "row" ]
+        [ div [ class "col-sm-12" ]
+            [ nav [ class "navbar navbar-light bg-white mb-2" ] [ span [ class "navbar-brand mb-0 h1" ] [ text "YT Notes" ] ]
+            ]
+        ]
+
+
+footerComponent : Html Msg
+footerComponent =
+    div [ class "row" ]
+        [ div [ class "col-sm-12 text-center" ]
+            [ span [] [ text "© 2020 by " ]
+            , a [ href "https://tadityar.me" ] [ text "tadityar" ]
+            , span [] [ text " - " ]
+            , a [ href "https://github.com/tadityar/youtube-notes" ] [ text "source code" ]
+            ]
         ]
 
 
@@ -293,7 +316,7 @@ noteForm model =
     form []
         (List.map
             (noteItemForm model)
-            (Dict.toList model.notes)
+            (List.reverse (Dict.toList model.notes))
         )
 
 

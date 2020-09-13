@@ -3,6 +3,7 @@ run-dev:
 .PHONY: run-dev
 
 elm: runtime-dependencies
+	node scripts/replace_with_env_vars.js
 	which elm-live || npm install -g elm-live@^3.4.1
 	make elm-live-view
 .PHONY: elm
