@@ -3,6 +3,7 @@ run-dev:
 .PHONY: run-dev
 
 elm: runtime-dependencies
+	npm install elm@latest-0.19.1
 	node scripts/replace_with_env_vars.js
 	which elm-live || npm install -g elm-live@^3.4.1
 	make elm-live-create
@@ -12,6 +13,8 @@ elm-live-create:
 	elm-live src/Main.elm \
 	--dir=public \
 	--pushstate \
+	--host=${ELM_HOST} \
+	--port=${ELM_PORT} \
 	--start-page=index.html \
 	-- --output public/client.js
 .PHONY: elm-live-create
