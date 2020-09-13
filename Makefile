@@ -11,7 +11,8 @@ elm: runtime-dependencies
 elm-live-create:
 	elm-live src/Create.elm \
 	--dir=public \
-	--start-page=create.html \
+	--pushstate \
+	--start-page=index.html \
 	-- --output public/client.js
 .PHONY: elm-live-create
 

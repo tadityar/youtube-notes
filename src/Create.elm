@@ -10,15 +10,17 @@ import Ext.Json.UUID
 import GraphQL.Optional
 import GraphQL.Response
 import Html exposing (Html, a, button, div, form, h1, input, label, nav, small, span, text, textarea)
-import Html.Attributes exposing (checked, class, disabled, for, href, id, readonly, step, type_, value)
+import Html.Attributes exposing (checked, class, disabled, for, href, id, readonly, step, title, type_, value)
 import Html.Events exposing (onCheck, onClick, onInput, onSubmit)
 import Http
 import Markdown.Block as Block exposing (Block, Inline, ListItem(..), Task(..))
 import Markdown.Html
 import Markdown.Parser
 import Markdown.Renderer
+import Route
 import String exposing (fromInt)
 import Task
+import Url
 
 
 type alias Model =
@@ -29,6 +31,10 @@ type alias Model =
     , isDarkMode : Bool
     , hasuraUrl : String
     , currentStage : CreateStage
+
+    --
+    , navKey : Browser.Navigation.Key
+    , currentRoute : Route.Route
     }
 
 
@@ -53,24 +59,37 @@ type Msg
     | OnInsertNote (Result Http.Error Db.InsertNotes.Response)
     | OnTitleChange String
     | OnVideoSet
+    | OnUrlRequest Browser.UrlRequest
+    | OnUrlChange Url.Url
 
 
 main =
-    Browser.element { init = init, view = view, update = update, subscriptions = subscriptions }
+    Browser.application
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
+        , onUrlRequest = OnUrlRequest
+        , onUrlChange = OnUrlChange
+        }
 
 
-init : Flags -> ( Model, Cmd Msg )
-init flags =
-    ( { currentTime = flags.currentTime
-      , notes = Dict.fromList []
-      , videoId = ""
-      , title = "Note Title"
-      , isDarkMode = False
-      , hasuraUrl = flags.hasuraUrl
-      , currentStage = PickVideo
-      }
-    , Cmd.none
-    )
+init : Flags -> Url.Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
+init flags url navKey =
+    let
+        model =
+            { currentTime = flags.currentTime
+            , notes = Dict.fromList []
+            , videoId = ""
+            , title = "Note Title"
+            , isDarkMode = False
+            , hasuraUrl = flags.hasuraUrl
+            , currentStage = PickVideo
+            , navKey = navKey
+            , currentRoute = Route.NotFound
+            }
+    in
+    updateWithURL url model
 
 
 type CreateStage
@@ -78,7 +97,7 @@ type CreateStage
     | AddNotes
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
     let
         component =
@@ -88,12 +107,41 @@ view model =
 
                 AddNotes ->
                     noteAdderComponent model
+
+        page =
+            case model.currentRoute of
+                Route.Create ->
+                    [ div [ class "row" ] [ div [ class "col-md-8" ] [ div [ id "player" ] [] ] ]
+                    , component
+                    ]
+
+                Route.Note s ->
+                    [ div
+                        []
+                        [ text s ]
+                    ]
+
+                Route.Homepage ->
+                    [ div
+                        []
+                        [ text "homepage"
+                        , a [ href (Route.toString Route.Create) ] [ text "create" ]
+                        , a [ href (Route.toString (Route.Note "alskdjalksdjlaskjdakl")) ] [ text "note" ]
+                        ]
+                    ]
+
+                Route.NotFound ->
+                    [ div
+                        []
+                        [ text "not found" ]
+                    ]
     in
-    div [ class "container" ]
-        [ headerComponent
-        , div [ class "row" ] [ div [ class "col-md-8" ] [ div [ id "player" ] [] ] ]
-        , component
-        , footerComponent
+    Browser.Document "Youtube Notes"
+        [ div
+            [ class "container" ]
+            (List.concat
+                [ [ headerComponent ], page, [ footerComponent ] ]
+            )
         ]
 
 
@@ -177,6 +225,22 @@ noteAdderComponent model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case Debug.log "update" msg of
+        OnUrlRequest (Browser.Internal url) ->
+            ( model, Browser.Navigation.pushUrl model.navKey (Url.toString url) )
+
+        OnUrlRequest (Browser.External "") ->
+            -- when we have `a` with `onClick` but without `href`
+            -- we'll get this event; should ignore
+            ( model, Cmd.none )
+
+        OnUrlRequest (Browser.External urlString) ->
+            ( model, Browser.Navigation.load urlString )
+
+        -- [url] given that we _are at this url_ how should our model change?
+        OnUrlChange url ->
+            updateWithURL url model
+
+        --
         ReceivedVideoTimestamp timeStamp ->
             ( { model | currentTime = timeStamp }, Cmd.none )
 
@@ -281,6 +345,33 @@ update msg model =
 
         OnVideoSet ->
             ( { model | currentStage = AddNotes }, changeVideoId model.videoId )
+
+
+updateWithURL : Url.Url -> Model -> ( Model, Cmd Msg )
+updateWithURL url oldModel =
+    let
+        currentRoute =
+            Route.fromUrl url
+
+        newModel =
+            { oldModel | currentRoute = currentRoute }
+    in
+    case currentRoute of
+        Route.Homepage ->
+            ( newModel, Cmd.none )
+
+        Route.Create ->
+            ( newModel, Cmd.none )
+
+        Route.Note videoId ->
+            let
+                _ =
+                    Debug.log "videoId Route called" videoId
+            in
+            ( { newModel | videoId = videoId }, Cmd.none )
+
+        Route.NotFound ->
+            ( newModel, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
