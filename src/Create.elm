@@ -59,6 +59,8 @@ type Msg
     | OnInsertNote (Result Http.Error Db.InsertNotes.Response)
     | OnTitleChange String
     | OnVideoSet
+    | OnCreateLinkClick
+      --
     | OnUrlRequest Browser.UrlRequest
     | OnUrlChange Url.Url
 
@@ -125,7 +127,7 @@ view model =
                     [ div
                         []
                         [ text "homepage"
-                        , a [ href (Route.toString Route.Create) ] [ text "create" ]
+                        , a [ onClick OnCreateLinkClick ] [ text "create" ]
                         , a [ href (Route.toString (Route.Note "alskdjalksdjlaskjdakl")) ] [ text "note" ]
                         ]
                     ]
@@ -346,6 +348,9 @@ update msg model =
         OnVideoSet ->
             ( { model | currentStage = AddNotes }, changeVideoId model.videoId )
 
+        OnCreateLinkClick ->
+            ( model, Browser.Navigation.load (Route.toString Route.Create) )
+
 
 updateWithURL : Url.Url -> Model -> ( Model, Cmd Msg )
 updateWithURL url oldModel =
@@ -364,10 +369,6 @@ updateWithURL url oldModel =
             ( newModel, Cmd.none )
 
         Route.Note videoId ->
-            let
-                _ =
-                    Debug.log "videoId Route called" videoId
-            in
             ( { newModel | videoId = videoId }, Cmd.none )
 
         Route.NotFound ->
