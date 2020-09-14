@@ -3,3 +3,4 @@ node_modules
 public/client.js
 public/view.js
 src/Db/*.elm
+build
