@@ -1,3 +1,7 @@
+[![Netlify Status](https://api.netlify.com/api/v1/badges/e548dcf2-0617-4c88-b0f5-5e3222c15a42/deploy-status)](https://app.netlify.com/sites/hardcore-noether-f2d39c/deploys)
+
+[Demo](https://hardcore-noether-f2d39c.netlify.app/)
+
 # Youtube Notes
 ![program-note.gif](https://github.com/tadityar/youtube-notes/blob/master/program-note.gif)
 
@@ -13,8 +17,5 @@ Make sure you have installed all of the following prerequisites on your machine:
 run with
 
 ```bash
-# run the infra
-$ make infra-dependencies
-# run the elm app
-$ make elm
+$ make run-dev
 ```

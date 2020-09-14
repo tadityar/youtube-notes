@@ -28,7 +28,7 @@ const hasVideoId = urlParams.get('videoId');
 // elm-stuff
 var flags = {
   currentTime: 0,
-  hasuraUrl: "http://graphql-engine:8080/v1/graphql"
+  hasuraUrl: "{HASURA_GRAPHQL_ENDPOINT}"
 }
 var app = Elm.Main.init({
   node: document.getElementById('elm'),
