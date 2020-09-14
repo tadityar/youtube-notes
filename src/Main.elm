@@ -113,25 +113,19 @@ view model =
                             viewPage notes model.currentTime
 
                         Nothing ->
-                            [ div
-                                []
-                                [ text "not found" ]
-                            ]
+                            notFoundPage
 
                 Route.Homepage ->
                     homePage
 
                 Route.NotFound ->
-                    [ div
-                        []
-                        [ text "not found" ]
-                    ]
+                    notFoundPage
     in
     Browser.Document "Youtube Notes"
         [ div
             [ class "container" ]
             (List.concat
-                [ [ headerComponent ], page, [ footerComponent ] ]
+                [ [ headerComponent model.currentRoute ], page, [ footerComponent ] ]
             )
         ]
 
@@ -341,7 +335,7 @@ updateWithURL url oldModel =
         Route.Note noteId ->
             case newModel.currentNote of
                 Just note ->
-                    ( newModel, changeVideoId note.videoId )
+                    ( { newModel | currentTime = 0 }, Cmd.batch [ changeVideoId note.videoId, seekVideo 0 ] )
 
                 Nothing ->
                     ( newModel, notesByPK newModel.hasuraUrl { id = Ext.Json.UUID.UUID noteId } )
@@ -526,15 +520,23 @@ noteDisplay notes currentTime =
         ]
 
 
-headerComponent : Html Msg
-headerComponent =
+headerComponent : Route.Route -> Html Msg
+headerComponent currentRoute =
+    let
+        linkClass route =
+            if route == currentRoute then
+                "nav-item active"
+
+            else
+                "nav-item"
+    in
     div [ class "row" ]
         [ div [ class "col-sm-12" ]
             [ nav [ class "navbar navbar-light navbar-expand-sm bg-white mb-2" ]
                 [ a [ class "navbar-brand", href (Route.toString Route.Homepage) ] [ text "YT Notes" ]
                 , ul [ class "nav navbar-nav" ]
-                    [ li [ class "nav-item active" ] [ a [ class "nav-link", href (Route.toString Route.Homepage) ] [ text "Home" ] ]
-                    , li [ class "nav-item" ] [ a [ class "nav-link", onClick OnCreateLinkClick ] [ text "Create" ] ]
+                    [ li [ class (linkClass Route.Homepage) ] [ a [ class "nav-link", href (Route.toString Route.Homepage) ] [ text "Home" ] ]
+                    , li [ class (linkClass Route.Create) ] [ a [ class "nav-link", onClick OnCreateLinkClick ] [ text "Create" ] ]
                     ]
                 ]
             ]
@@ -642,6 +644,14 @@ viewPage notes currentTime =
         , div [ class "col-md-8" ] [ div [ id "player" ] [] ]
         , div [ class "col-md-4" ] [ noteDisplay notes currentTime ]
         ]
+    ]
+
+
+notFoundPage : List (Html Msg)
+notFoundPage =
+    [ div
+        [ class "row" ]
+        [ div [ class "col-md-12" ] [ h1 [] [ text "Oops! Page not found" ] ] ]
     ]
 
 
