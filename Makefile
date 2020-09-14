@@ -30,7 +30,7 @@ node_modules: package.json
 .PHONY: node_modules
 
 build-graphql:
-	rm -f src/db/*.elm
+	rm -f src/Db/*.elm
 	which gq || npm install -g graphqurl
 	gq ${HASURA_GRAPHQL_ENDPOINT} -H "X-Hasura-Admin-Secret: ${HASURA_ADMIN_SECRET}" --introspect > schema.graphql
 	node scripts/run-graphql-to-elm.js

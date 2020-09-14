@@ -5,4 +5,4 @@
 
 [build]
   publish = "public/"
-  command = "make build-app"
+  command = "mkdir build && make build-app"
